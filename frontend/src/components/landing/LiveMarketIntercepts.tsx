@@ -50,3 +50,27 @@ export function LiveMarketIntercepts() {
           Live Market Intercepts
         </h2>
         <div className="h-px w-full bg-surface-bright/50"></div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div className="md:col-span-4 text-on-surface-variant font-mono text-sm leading-relaxed">
+          <p className="mb-4">
+            Argos intercepts raw data streams globally. 
+            Anomalies are structured, verified, and injected into the intelligence network in real-time.
+          </p>
+          <p>
+            No batch processing. No daily digests. 
+            Instant tactical awareness.
+          </p>
+        </div>
+
+        <div className="md:col-span-8 bg-surface-low border border-surface-bright/50 rounded-lg p-4 overflow-hidden h-[400px] relative font-mono text-sm flex flex-col">
+          {/* Fading bottom edge */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-surface-low to-transparent z-10"></div>
+          
+          <div className="flex-1 overflow-hidden">
+            <AnimatePresence initial={false}>
+              {signals.map((sig) => (
+                <motion.div
+                  key={sig.id}
+                  initial={{ opacity: 0, y: -20, backgroundColor: "rgba(245, 158, 11, 0.2)" }}
