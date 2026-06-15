@@ -24,3 +24,18 @@ export default async function LandingPage() {
             <span className="text-primary font-bold text-base">A</span>
           </div>
           <span className="text-xl font-bold tracking-tight text-on-surface">Argos</span>
+        </div>
+        <div className="flex items-center gap-6">
+          {!user ? (
+            <Link href="/login" className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors">
+              Sign Up
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="text-sm font-medium bg-primary text-black px-5 py-2 rounded-lg hover:scale-105 transition-transform">
+              Launch Command Center
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {/* Sections */}
