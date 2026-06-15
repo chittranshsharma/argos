@@ -336,4 +336,18 @@ def save_alert(alert_data: dict) -> None:
 
 
 def get_unsent_alerts() -> list:
-    return []
+    """Get all unsent alerts."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("alerts")
+            .select("*")
+            .eq("is_sent", False)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting unsent alerts: {e}")
+        return []
+
