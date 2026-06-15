@@ -39,4 +39,12 @@ def get_all_companies() -> list:
 
 
 def get_company_by_id(company_id: str) -> dict:
-    return {}
+    """Return a single company by UUID."""
+    try:
+        client = get_supabase_client()
+        response = client.table("companies").select("*").eq("id", company_id).single().execute()
+        return response.data
+    except Exception as e:
+        logger.error(f"Error getting company {company_id}: {e}")
+        return {}
+
