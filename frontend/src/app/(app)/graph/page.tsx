@@ -83,3 +83,80 @@ export default function KnowledgeGraphPage() {
              nodes.push({ id: eventId, label: "Patent Filing: AGI Routing", type: "event", val: 8 });
              links.push({ source: company.id, target: eventId, type: "launch", strength: "strong", label: "FILED" });
           }
+          if (seed % 6 === 3) {
+             const eventId = `${company.id}_event_acq`;
+             nodes.push({ id: eventId, label: "Acquisition Rumor", type: "event", val: 9 });
+             links.push({ source: company.id, target: eventId, type: "acquisition", strength: "weak", label: "RUMORED" });
+          }
+
+          // Cross company relations
+          if (companies.length > 1) {
+            for (let j = i + 1; j < companies.length; j++) {
+               const other = companies[j];
+               const pairSeed = seed + other.name.length;
+               
+               if (pairSeed % 3 === 0) {
+                 links.push({
+                   source: company.id,
+                   target: other.id,
+                   type: "competition",
+                   strength: pairSeed % 2 === 0 ? "strong" : "medium",
+                   label: "COMPETES WITH"
+                 });
+               } else if (pairSeed % 5 === 0) {
+                 links.push({
+                   source: company.id,
+                   target: other.id,
+                   type: "partnership",
+                   strength: "medium",
+                   label: "PARTNERS WITH"
+                 });
+               } else if (pairSeed % 7 === 0) {
+                 links.push({
+                   source: company.id,
+                   target: other.id,
+                   type: "hiring",
+                   strength: "strong",
+                   label: "HIRED FROM"
+                 });
+               }
+            }
+          }
+        }
+
+        setData({ nodes, links });
+      } catch (err) {
+        console.error("Failed to build graph topology", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadGraph();
+  }, []);
+
+  const getNodeLinkCount = (nodeId: string) => {
+    return data.links.filter(l => 
+      l.source === nodeId || l.target === nodeId || 
+      (l.source as any).id === nodeId || (l.target as any).id === nodeId
+    ).length;
+  };
+
+  const generateAIAssessment = (node: GraphNode) => {
+    // Collect all links connected to this node
+    const connectedLinks = data.links.filter(
+      l => l.source === node.id || l.target === node.id || (l.source as any).id === node.id || (l.target as any).id === node.id
+    );
+
+    if (connectedLinks.length === 0) {
+      return `Isolated node detected. Insufficient topological data to generate a high-confidence assessment for ${node.label}.`;
+    }
+
+    if (node.type === "company") {
+      const hires = connectedLinks.filter(l => l.type === "hiring").length;
+      const funding = connectedLinks.filter(l => l.type === "funding").length;
+      const competitors = connectedLinks.filter(l => l.type === "competition").length;
+      const launches = connectedLinks.filter(l => l.type === "launch").length;
+
+      let assessment = `Strategic analysis of ${node.label} indicates `;
+      if (hires > 0 && launches > 0) {
