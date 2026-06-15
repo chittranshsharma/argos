@@ -113,3 +113,60 @@ export interface HiringTrend {
 
 export interface TechSignal {
   technology: string;
+  signal_type: string;
+  evidence: string;
+}
+
+// ── Alert ──────────────────────────────────────────────────
+
+export interface Alert {
+  id: string;
+  company_id: string;
+  company_name: string;
+  alert_type: string;
+  message: string;
+  sent_via: string[];
+  is_sent: boolean;
+  created_at: string;
+  confidence_score?: number;
+  impact_level?: string;
+}
+
+// ── Discovery ──────────────────────────────────────────────
+
+export interface DiscoveryResult {
+  github_org: string | null;
+  careers_url: string | null;
+  reddit_sub: string | null;
+  producthunt_slug: string | null;
+  linkedin_url: string | null;
+  changelog_url: string | null;
+  news_keywords: string[];
+}
+
+// ── API Responses ──────────────────────────────────────────
+
+export interface MonitoringStatus {
+  message: string;
+  status: "running" | "completed" | "failed";
+}
+
+export interface DashboardStats {
+  companies_tracked: number;
+  signals_today: number;
+  high_priority_alerts: number;
+  reports_generated: number;
+}
+
+export interface ScoreBreakdown {
+  signal_volume: number;
+  hiring_velocity: number;
+  funding_activity: number;
+  sentiment: number;
+  executive_events: number;
+  report_activity: number;
+  total: number;
+}
+
+export interface CompanyDetailResponse {
+  company: Company;
