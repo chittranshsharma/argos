@@ -13,3 +13,6 @@ from app.config import HIGH_IMPORTANCE_KEYWORDS
 
 logger = logging.getLogger(__name__)
 
+
+class NewsAgent:
+    pass
