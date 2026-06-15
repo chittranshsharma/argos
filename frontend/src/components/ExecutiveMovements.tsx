@@ -49,3 +49,21 @@ export function ExecutiveMovements({ companyId }: { companyId: string }) {
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full"
               style={{
                 background: `${getMovementColor(m.title)}20`,
+                color: getMovementColor(m.title)
+              }}>
+              Executive
+            </span>
+          </div>
+          {m.content && (
+            <p className="text-xs text-argos-text-muted mt-1 line-clamp-2">
+              {m.content}
+            </p>
+          )}
+          <p className="text-[10px] text-argos-text-dim mt-2 font-mono">
+            {new Date(m.collected_at).toLocaleDateString()}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}
