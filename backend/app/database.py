@@ -363,3 +363,6 @@ def mark_alert_sent(alert_id: str, channels: list[str]) -> None:
     except Exception as e:
         logger.error(f"Error marking alert {alert_id} sent: {e}")
 
+
+def get_job_signals(company_id: str, days: int = 30) -> list:
+    return []
