@@ -353,4 +353,13 @@ def get_unsent_alerts() -> list:
 
 
 def mark_alert_sent(alert_id: str, channels: list[str]) -> None:
-    pass
+    """Mark an alert as sent and record delivery channels."""
+    try:
+        client = get_supabase_client()
+        client.table("alerts").update({
+            "is_sent": True,
+            "sent_via": channels
+        }).eq("id", alert_id).execute()
+    except Exception as e:
+        logger.error(f"Error marking alert {alert_id} sent: {e}")
+
