@@ -32,3 +32,18 @@ export function IntelligencePipeline() {
         />
 
         <div className="space-y-8 relative z-10">
+          {steps.map((step, idx) => (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.1 }}
+              className={`flex flex-col md:flex-row items-start md:items-center gap-6 ${idx % 2 === 0 ? 'md:flex-row-reverse text-left md:text-right' : 'text-left'}`}
+            >
+              <div className="hidden md:block w-1/2" />
+              
+              <div className="flex-shrink-0 w-14 h-14 rounded-full bg-surface-low border-2 border-primary/40 flex items-center justify-center relative z-10 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                {idx < steps.length - 1 ? (
+                  <ArrowDown className="w-5 h-5 text-primary" />
+                ) : (
