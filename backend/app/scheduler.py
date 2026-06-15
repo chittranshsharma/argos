@@ -128,3 +128,6 @@ def send_real_time_alerts():
     except Exception as e:
         logger.error(f"Alert sending failed: {e}")
 
+
+def refresh_analytics():
+    return None
