@@ -144,3 +144,6 @@ def get_signals(company_id: str, limit: int = 50, source: str = None) -> list:
         logger.error(f"Error getting signals: {e}")
         return []
 
+
+def get_new_signals(company_id: str) -> list:
+    return []
