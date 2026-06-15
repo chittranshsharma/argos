@@ -38,3 +38,31 @@ function CustomTooltip({
   const data = payload[0].payload;
   return (
     <div className="rounded-lg bg-argos-surface-2 border border-argos-border px-3 py-2 shadow-xl">
+      <p className="text-sm font-medium text-argos-text">{data.role}</p>
+      <p className="text-xs text-argos-text-dim">
+        Count: <span className="text-argos-text font-medium">{data.count}</span>
+      </p>
+      <p className="text-xs text-argos-text-dim">
+        Trend:{" "}
+        <span
+          style={{ color: TREND_COLORS[data.trend] || "#6b7280" }}
+          className="font-medium capitalize"
+        >
+          {data.trend}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+// ── Component ──────────────────────────────────────────────
+
+interface HiringTrendsProps {
+  trends: HiringTrend[];
+}
+
+export default function HiringTrends({ trends }: HiringTrendsProps) {
+  if (!trends || trends.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-argos-text-dim">
+        <div className="text-3xl mb-2 opacity-30">▣</div>
