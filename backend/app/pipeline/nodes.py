@@ -30,3 +30,6 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════
 # Node 1: Collect signals from all agents in parallel
 # ═══════════════════════════════════════════════════════════
+
+def collect_signals_node(state: dict) -> dict:
+    return {}
