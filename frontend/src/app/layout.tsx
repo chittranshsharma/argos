@@ -12,3 +12,13 @@ const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 });
+
+const fontBody = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+});
+
+export const metadata: Metadata = {
+  title: "Argos Intelligence",
+  description: "Strategy Command Center for competitive intelligence",
+};
