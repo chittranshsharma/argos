@@ -9,3 +9,8 @@ export function ScoreBadge({ score }: ScoreBadgeProps) {
     score >= 40 ? '#eab308' :
     '#6b7280';
   
+  return (
+    <span 
+      className="text-xs font-mono font-bold px-1.5 py-0.5 
+        rounded border"
+      style={{ color, borderColor: color, backgroundColor: `${color}15` }}
