@@ -94,3 +94,32 @@ export default function HiringTrends({ trends }: HiringTrendsProps) {
       {/* Chart */}
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={trends} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
+          <XAxis
+            dataKey="role"
+            tick={{ fill: "#6b7280", fontSize: 10 }}
+            axisLine={{ stroke: "#2a2a2a" }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fill: "#6b7280", fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{ fill: "rgba(59, 130, 246, 0.05)" }}
+          />
+          <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+            {trends.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={TREND_COLORS[entry.trend] || "#6b7280"}
+                fillOpacity={0.8}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
