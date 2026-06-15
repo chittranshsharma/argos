@@ -277,4 +277,8 @@ def get_latest_reports() -> list:
         return []
 
 def get_signal_baseline(company_id: str, source: str) -> dict:
+    """
+    Get historical average signal count per week for a 
+    company+source combo. Used for anomaly detection.
+    """
     return {}
