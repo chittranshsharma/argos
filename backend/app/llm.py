@@ -17,4 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_groq_llm() -> ChatGroq:
-    return None
+    """Create a Groq LLM instance with llama-3.3-70b-versatile."""
+    return ChatGroq(
+        api_key=GROQ_API_KEY,
+        model_name=GROQ_MODEL,
+        temperature=0.1,
+        max_tokens=4096,
+    )
+
