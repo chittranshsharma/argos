@@ -210,4 +210,14 @@ def get_existing_signal_urls(company_id: str) -> set:
 
 
 def mark_signals_seen(company_id: str) -> None:
-    pass
+    """Mark all signals for a company as seen."""
+    try:
+        client = get_supabase_client()
+        client.table("signals").update({"is_new": False}).eq(
+            "company_id", company_id
+        ).eq("is_new", True).execute()
+    except Exception as e:
+        logger.error(f"Error marking signals seen: {e}")
+
+
+# ── Reports ─────────────────────────────────────────────────
