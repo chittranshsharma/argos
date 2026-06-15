@@ -22,3 +22,6 @@ logger = logging.getLogger(__name__)
 
 scheduler = BackgroundScheduler()
 
+
+def run_monitoring_cycle():
+    return None
