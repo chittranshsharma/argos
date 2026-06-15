@@ -45,3 +45,50 @@
   --color-secondary: var(--color-surface-bright);
   --color-secondary-foreground: var(--color-on-surface);
   --color-muted: var(--color-surface-bright);
+  --color-muted-foreground: var(--color-on-surface-variant);
+  --color-accent: var(--color-surface-bright);
+  --color-accent-foreground: var(--color-on-surface);
+  --color-destructive: var(--color-status-critical);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--color-surface-bright);
+  --color-input: var(--color-surface-bright);
+  --color-ring: var(--color-primary);
+}
+
+:root {
+  --background: var(--color-surface-lowest);
+  --foreground: var(--color-on-surface);
+  --card: var(--color-surface-low);
+  --card-foreground: var(--color-on-surface);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-on-surface);
+  --primary: var(--color-primary);
+  --primary-foreground: #000000;
+  --secondary: var(--color-surface-bright);
+  --secondary-foreground: var(--color-on-surface);
+  --muted: var(--color-surface-bright);
+  --muted-foreground: var(--color-on-surface-variant);
+  --accent: var(--color-surface-bright);
+  --accent-foreground: var(--color-on-surface);
+  --destructive: var(--color-status-critical);
+  --destructive-foreground: #ffffff;
+  --border: var(--color-surface-bright);
+  --input: var(--color-surface-bright);
+  --ring: var(--color-primary);
+  --radius: 8px;
+}
+
+.dark {
+  --background: var(--color-surface-lowest);
+  --foreground: var(--color-on-surface);
+  --card: var(--color-surface-low);
+  --card-foreground: var(--color-on-surface);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-on-surface);
+  --primary: var(--color-primary);
+  --primary-foreground: #000000;
+  --secondary: var(--color-surface-bright);
+  --secondary-foreground: var(--color-on-surface);
+  --muted: var(--color-surface-bright);
+  --muted-foreground: var(--color-on-surface-variant);
+  --accent: var(--color-surface-bright);
