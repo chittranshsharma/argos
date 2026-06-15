@@ -110,4 +110,21 @@ def send_real_time_alerts():
     Alert check — runs every 15 minutes.
     Sends unsent alerts via Telegram.
     """
-    return None
+    try:
+        unsent = get_unsent_alerts()
+        if not unsent:
+            return
+
+        logger.info(f"Sending {len(unsent)} unsent alerts...")
+        telegram = TelegramDelivery()
+
+        for alert in unsent:
+            message = alert.get("message", "")
+            if telegram.send_alert(message):
+                mark_alert_sent(alert["id"], ["telegram"])
+            else:
+                logger.warning(f"Failed to send alert: {alert['id']}")
+
+    except Exception as e:
+        logger.error(f"Alert sending failed: {e}")
+
