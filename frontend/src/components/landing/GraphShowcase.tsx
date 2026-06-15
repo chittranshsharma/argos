@@ -44,3 +44,43 @@ export function GraphShowcase() {
         { id: "OpenAI", group: "Target", val: 25, color: "#f59e0b", activityLevel: "High", connections: 312, momentum: "+8%" },
         { id: "Microsoft", group: "Partner", val: 18, color: "#3b82f6", activityLevel: "Elevated", connections: 450, momentum: "+2%" },
       ],
+      links: [
+        { source: "Anthropic", target: "AWS" },
+        { source: "Anthropic", target: "Google" },
+        { source: "Anthropic", target: "Jan Leike" },
+        { source: "Anthropic", target: "Mike Matas" },
+        { source: "Anthropic", target: "Series C" },
+        { source: "Anthropic", target: "Claude 3.5" },
+        { source: "Jan Leike", target: "Claude 3.5" },
+        { source: "OpenAI", target: "Microsoft" },
+        { source: "OpenAI", target: "Jan Leike" },
+        { source: "Anthropic", target: "OpenAI" }, 
+      ]
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mockGraphData.nodes.length > 0) {
+      setSelectedNode(mockGraphData.nodes[0]);
+    }
+  }, [mockGraphData]);
+
+  const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const label = node.id;
+    const fontSize = 12 / globalScale;
+    ctx.font = `${fontSize}px "JetBrains Mono", monospace`;
+    
+    // Node circle
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.val * 0.4, 0, 2 * Math.PI, false);
+    ctx.fillStyle = node.color;
+    ctx.fill();
+    
+    // Highlight if selected
+    if (selectedNode && selectedNode.id === node.id) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.val * 0.4 + 2, 0, 2 * Math.PI, false);
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 2 / globalScale;
+      ctx.stroke();
+    }
