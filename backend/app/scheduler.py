@@ -151,3 +151,6 @@ def refresh_analytics():
         logger.info(f"Analytics refresh completed for {len(companies)} companies.")
     except Exception as e:
         logger.error(f"Analytics refresh cycle failed: {e}")
+
+def start_scheduler():
+    return None
