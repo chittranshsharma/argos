@@ -55,3 +55,61 @@ export interface RankingEntry {
 }
 
 // ── Signal ─────────────────────────────────────────────────
+
+export type SignalSource =
+  | "github"
+  | "news"
+  | "reddit"
+  | "hackernews"
+  | "linkedin"
+  | "jobs"
+  | "changelog"
+  | "producthunt";
+
+export type Importance = "high" | "medium" | "low";
+
+export interface Signal {
+  id: string;
+  company_id: string;
+  company_name: string;
+  source: SignalSource;
+  signal_type: string;
+  title: string;
+  content?: string | null;
+  importance: "low" | "medium" | "high";
+  url?: string | null;
+  collected_at: string;
+  score?: number;
+}
+
+export interface Anomaly {
+  source: string;
+  is_anomaly: boolean;
+  ratio: number;
+  message: string;
+}
+
+// ── Report ─────────────────────────────────────────────────
+
+export interface Report {
+  id: string;
+  company_id: string;
+  company_name: string;
+  report_markdown: string;
+  signals_analyzed: number;
+  key_findings: string[];
+  hiring_trends: HiringTrend[];
+  tech_signals: TechSignal[];
+  generated_at: string;
+  period_start: string;
+  period_end: string;
+}
+
+export interface HiringTrend {
+  role: string;
+  count: number;
+  trend: "growing" | "stable" | "declining";
+}
+
+export interface TechSignal {
+  technology: string;
