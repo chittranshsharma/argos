@@ -61,4 +61,17 @@ def add_company(company_data: dict) -> dict:
 
 
 def update_company(company_id: str, updates: dict) -> dict:
-    return {}
+    """Update a company record."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("companies")
+            .update(updates)
+            .eq("id", company_id)
+            .execute()
+        )
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error updating company {company_id}: {e}")
+        return {}
+
