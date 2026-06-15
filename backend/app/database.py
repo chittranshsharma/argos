@@ -230,3 +230,6 @@ def save_report(report_data: dict) -> None:
     except Exception as e:
         logger.error(f"Error saving report: {e}")
 
+
+def get_reports(company_id: str) -> list:
+    return []
