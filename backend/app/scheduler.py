@@ -195,4 +195,7 @@ def start_scheduler():
 
 
 def stop_scheduler():
-    return None
+    """Shutdown the APScheduler."""
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("APScheduler stopped")
