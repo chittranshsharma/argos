@@ -108,3 +108,41 @@ export default function KnowledgeGraph({
         nodeRelSize={6}
         nodeColor={(node: Record<string, unknown>) => (node.color as string) || "#6b7280"}
         nodeLabel={(node: Record<string, unknown>) =>
+          `${node.name} (${node.type})${node.description ? "\n" + node.description : ""}`
+        }
+        linkColor={() => "rgba(59, 130, 246, 0.2)"}
+        linkWidth={1.5}
+        linkDirectionalArrowLength={4}
+        linkDirectionalArrowRelPos={1}
+        nodeCanvasObject={(node: Record<string, unknown>, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          const label = node.name as string;
+          const fontSize = 10 / globalScale;
+          const nodeColor = (node.color as string) || "#6b7280";
+
+          // Draw node circle
+          ctx.beginPath();
+          ctx.arc(node.x as number, node.y as number, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = nodeColor;
+          ctx.fill();
+
+          // Draw glow
+          ctx.beginPath();
+          ctx.arc(node.x as number, node.y as number, 7, 0, 2 * Math.PI);
+          ctx.strokeStyle = nodeColor + "40";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Draw label
+          ctx.font = `${fontSize}px Inter, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillStyle = "#e5e7eb";
+          ctx.fillText(label, node.x as number, (node.y as number) + 8);
+        }}
+        cooldownTicks={100}
+        enableZoomInteraction={true}
+        enablePanInteraction={true}
+      />
+    </div>
+  );
+}
