@@ -424,3 +424,6 @@ def get_high_priority_alert_count() -> int:
         logger.error(f"Error counting high priority alerts: {e}")
         return 0
 
+
+def get_total_reports_count() -> int:
+    return None
