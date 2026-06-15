@@ -169,3 +169,83 @@ export default function CompanyDetailPage() {
 
       {data.score_breakdown && (
         <div className="mt-6 bg-surface-low border border-surface-bright/20 p-5 rounded-xl">
+          <h3 className="text-sm font-mono uppercase font-bold text-on-surface tracking-wider mb-4 border-b border-surface-bright/20 pb-2 flex justify-between">
+            <span>Score Components</span>
+            <span className="text-primary">Total: {data.score_breakdown.total.toFixed(1)}</span>
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-xs font-mono">
+            <div className="flex flex-col gap-1">
+              <span className="text-on-surface-variant">Signal Volume</span>
+              <span className="text-lg font-bold text-on-surface">{data.score_breakdown.signal_volume.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-on-surface-variant">Hiring Activity</span>
+              <span className="text-lg font-bold text-on-surface">{data.score_breakdown.hiring_velocity.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-on-surface-variant">Funding Activity</span>
+              <span className="text-lg font-bold text-on-surface">{data.score_breakdown.funding_activity.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-on-surface-variant">Sentiment</span>
+              <span className="text-lg font-bold text-on-surface">{data.score_breakdown.sentiment.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-on-surface-variant">Exec Events</span>
+              <span className="text-lg font-bold text-on-surface">{data.score_breakdown.executive_events.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-on-surface-variant">Reports</span>
+              <span className="text-lg font-bold text-on-surface">{data.score_breakdown.report_activity.toFixed(1)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+        {/* Main Feed */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold tracking-tight text-on-surface flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" /> Recent Signals
+            </h2>
+          </div>
+          
+          {recent_signals.length > 0 ? (
+            <SignalFeed signals={recent_signals} showCompany={false} />
+          ) : (
+            <div className="glass-panel p-8 text-center rounded-xl border border-surface-bright/20">
+              <p className="text-on-surface-variant">No signals intercepted yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <div className="intelligence-card p-5">
+            <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Latest Briefing
+            </h3>
+            
+            {latest_report ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-semibold text-on-surface">{latest_report.company_name} Briefing</h4>
+                  <span className="text-xs text-on-surface-variant whitespace-nowrap ml-2">
+                    {new Date(latest_report.generated_at).toLocaleDateString()}
+                  </span>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1.5">Executive Summary</h5>
+                    <p className="text-sm text-on-surface-variant leading-relaxed line-clamp-3">
+                      {latest_report.report_markdown.replace(/[#*`]/g, '').substring(0, 200)}...
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1.5">Key Findings</h5>
+                    <ul className="text-sm text-on-surface-variant list-disc pl-4 space-y-1">
+                      <li>Hiring velocity increased steadily</li>
+                      <li>Acquisition activity detected in AI sector</li>
+                      <li>New open source initiative announced</li>
