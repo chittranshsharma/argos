@@ -393,4 +393,18 @@ def get_executive_movements(company_id: str) -> list:
 # ── Stats ───────────────────────────────────────────────────
 
 def get_signals_today_count() -> int:
-    return None
+    """Count signals collected today."""
+    try:
+        client = get_supabase_client()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00+00:00")
+        response = (
+            client.table("signals")
+            .select("id", count="exact")
+            .gte("collected_at", today)
+            .execute()
+        )
+        return response.count or 0
+    except Exception as e:
+        logger.error(f"Error counting signals today: {e}")
+        return 0
+
