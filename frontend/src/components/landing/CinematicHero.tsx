@@ -46,3 +46,47 @@ export function CinematicHero() {
       {/* Background Layers */}
       
       {/* Layer 5: Subtle scanlines */}
+      <div className="absolute inset-0 pointer-events-none opacity-20" style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.25) 50%)`,
+        backgroundSize: '100% 4px',
+        zIndex: 5
+      }}></div>
+
+      {/* Layer 3: Radar sweeps */}
+      <motion.div 
+        animate={{ rotate: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
+        style={{
+          background: 'conic-gradient(from 0deg, transparent 0deg, var(--color-primary) 90deg, transparent 90deg)',
+          borderRadius: '50%',
+          width: '200vw',
+          height: '200vw',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
+      />
+
+      {/* Layer 1: Slow intelligence network (simulated via radial gradients moving) */}
+      <motion.div
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-surface-lowest to-surface-lowest"
+      />
+
+      {/* Layer 4: Moving anomaly markers */}
+      {mounted && (
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <motion.div
+              key={`anomaly-${i}`}
+              className="absolute w-2 h-2 bg-status-critical rounded-full"
+              initial={{ 
+                x: `${Math.random() * 100}vw`, 
+                y: `${Math.random() * 100}vh`,
+                opacity: 0,
+                scale: 0
