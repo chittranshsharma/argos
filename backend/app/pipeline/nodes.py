@@ -263,4 +263,110 @@ def analyze_signals_node(state: dict) -> dict:
     signals_text = "\n".join(signal_summaries)
 
     prompt = f"""You are a competitive intelligence analyst. Analyze these signals about {company_name} and return a JSON object.
-    return {}
+
+SIGNALS:
+{signals_text}
+
+Return ONLY valid JSON with this structure:
+{{
+    "key_findings": ["finding 1", "finding 2", ...],
+    "hiring_trends": [
+        {{"role": "role name", "count": 1, "trend": "growing|stable|declining"}}
+    ],
+    "tech_signals": [
+        {{"technology": "tech name", "signal_type": "adoption|migration|deprecation", "evidence": "brief evidence"}}
+    ],
+    "entities": [
+        {{"name": "entity name", "type": "Company|Person|Technology|Product|Competitor", "description": "brief desc"}}
+    ],
+    "relationships": [
+        {{"source": "entity1", "relation": "uses|competes_with|acquired|partnered|hired", "target": "entity2"}}
+    ]
+}}
+
+Be specific and factual. Only include findings supported by the signals."""
+
+    try:
+        llm = get_groq_llm()
+        response = llm_invoke(llm, prompt)
+
+        # Parse JSON from response
+        parsed = _parse_json_response(response)
+    except Exception as e:
+        logger.error(f"Signal analysis failed: {e}")
+        return {
+            "analysis": {},
+            "key_findings": [f"Analysis failed: {str(e)[:100]}"],
+            "hiring_trends": [],
+            "tech_signals": [],
+            "entities": [],
+            "relationships": [],
+        }
+
+    # Track social sentiment
+    try:
+        social_signals = [s for s in new_signals if s.get("source") in ["reddit", "hackernews"]]
+        if social_signals:
+            from app.analysis.sentiment_analyzer import SentimentAnalyzer
+            from app.database import get_supabase_client
+            client = get_supabase_client()
+            analyzer = SentimentAnalyzer()
+            scored = analyzer.analyze_batch_sentiment(social_signals)
+            for s in scored:
+                if "id" in s:
+                    client.table("signals").update({"sentiment_score": s["sentiment_score"]}).eq("id", s["id"]).execute()
+    except Exception as e:
+        logger.error(f"Sentiment tracking failed: {e}")
+
+    # Track executive movements
+    try:
+        from app.analysis.executive_tracker import ExecutiveTracker
+        from app.database import save_signal, save_alert
+        tracker = ExecutiveTracker()
+        movements = tracker.extract_executive_movements(company_name, new_signals)
+        
+        for mov in movements:
+            # Create a signal for the movement
+            now = __import__('datetime').datetime.now(__import__('datetime').timezone.utc)
+            sig_data = {
+                "company_id": state["company_id"],
+                "company_name": company_name,
+                "source": "news",
+                "signal_type": "executive_movement",
+                "title": f"{mov.get('name')} {mov.get('movement_type')} as {mov.get('title')}",
+                "content": mov.get('summary', ''),
+                "url": "",
+                "raw_data": {},
+                "collected_at": now.isoformat(),
+                "importance": "high",
+                "is_executive_movement": True
+            }
+            save_signal(sig_data)
+            
+            # Create immediate alert for departures
+            if mov.get("movement_type") == "left":
+                alert_data = {
+                    "company_id": state["company_id"],
+                    "company_name": company_name,
+                    "alert_type": "executive_departure",
+                    "message": f"🚨 Executive Departure: {mov.get('name')} left {company_name} ({mov.get('title')})",
+                    "sent_via": [],
+                    "is_sent": False
+                }
+                save_alert(alert_data)
+    except Exception as e:
+        logger.error(f"Executive tracking failed in pipeline: {e}")
+
+    return {
+        "analysis": parsed,
+        "key_findings": parsed.get("key_findings", []),
+        "hiring_trends": parsed.get("hiring_trends", []),
+        "tech_signals": parsed.get("tech_signals", []),
+        "entities": parsed.get("entities", []),
+        "relationships": parsed.get("relationships", []),
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+# Node 4: Store entities and relationships in Neo4j
+# ═══════════════════════════════════════════════════════════
