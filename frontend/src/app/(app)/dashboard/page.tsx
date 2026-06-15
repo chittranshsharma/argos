@@ -117,3 +117,59 @@ export default function DashboardPage() {
               metaColor="text-status-success"
               icon={Globe}
               color="text-primary"
+              delay={0}
+            />
+            <StatCard
+              label="Signals Today"
+              value={stats?.signals_today ?? 227}
+              metaText="+18%"
+              metaColor="text-status-success"
+              icon={Activity}
+              color="text-status-success"
+              delay={80}
+            />
+            <StatCard
+              label="Critical Alerts"
+              value={stats?.high_priority_alerts ?? 0}
+              metaText="No action needed"
+              metaColor="text-on-surface-variant"
+              icon={Zap}
+              color="text-status-critical"
+              delay={160}
+            />
+            <StatCard
+              label="Generated Reports"
+              value={stats?.reports_generated ?? 5}
+              metaText="2 scheduled"
+              metaColor="text-on-surface-variant"
+              icon={FileText}
+              color="text-status-elevated"
+              delay={240}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Live Signal Feed & Trending Topics (Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Main Feed */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold tracking-tight text-on-surface">
+              Intelligence Stream
+            </h2>
+            <div className="flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-status-success/10 border border-status-success/20">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-status-success" />
+              </span>
+              <span className="text-[10px] font-mono text-status-success uppercase font-bold tracking-wider">Live</span>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="skeleton h-[120px]" />
+              ))}
