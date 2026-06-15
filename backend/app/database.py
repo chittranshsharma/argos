@@ -77,4 +77,8 @@ def update_company(company_id: str, updates: dict) -> dict:
 
 
 def deactivate_company(company_id: str) -> dict:
-    return {}
+    """Soft-delete: set is_active=False."""
+    return update_company(company_id, {"is_active": False})
+
+
+# ── Signals ─────────────────────────────────────────────────
