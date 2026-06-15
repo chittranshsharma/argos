@@ -378,4 +378,16 @@ def get_job_signals(company_id: str, days: int = 30) -> list:
     return result.data or []
 
 def get_executive_movements(company_id: str) -> list:
-    return []
+    from app.database import get_supabase_client
+    client = get_supabase_client()
+    result = client.table("signals")\
+        .select("*")\
+        .eq("company_id", company_id)\
+        .eq("is_executive_movement", True)\
+        .order("collected_at", desc=True)\
+        .execute()
+    return result.data or []
+
+# ── Alerts ───────────────────────────────────────────────────
+
+# ── Stats ───────────────────────────────────────────────────
