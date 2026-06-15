@@ -67,3 +67,63 @@ export default function ReportsPage() {
           } else if (attempts >= 15) {
             setIsGenerating(false);
             clearInterval(pollInterval);
+            console.error("Report generation timed out or failed silently.");
+          }
+        } catch (e) {
+          console.error("Polling failed", e);
+        }
+      }, 2000);
+
+    } catch (err) {
+      console.error(err);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!confirm("Are you sure you want to clear all reports? This action cannot be undone.")) return;
+    setIsClearing(true);
+    try {
+      await clearReports();
+      setReports([]);
+      setSelectedReport(null);
+    } catch (err) {
+      console.error("Failed to clear reports", err);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!selectedReport) return;
+    const element = document.getElementById("report-content");
+    if (!element) return;
+    
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      const opt = {
+        margin:       0.5,
+        filename:     `${selectedReport.company_name}_Intelligence_Briefing.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0a0a0a' }, // match background
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      
+      html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error("Failed to generate PDF", err);
+    }
+  };
+
+  return (
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-on-surface flex items-center gap-3">
+            <FileText className="w-8 h-8 text-primary" /> Briefings
+          </h1>
+          <p className="text-sm text-on-surface-variant mt-1">
+            Executive summaries and automated intelligence reports.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
