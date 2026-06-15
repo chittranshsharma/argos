@@ -47,3 +47,48 @@ function getProviderName(signal: Signal): string {
   if (signal.url) {
     try {
       const url = new URL(signal.url);
+      let host = url.hostname.replace(/^www\./, '');
+      // Capitalize first letter of domain
+      if (host.includes('.')) {
+        host = host.split('.')[0];
+      }
+      return host.charAt(0).toUpperCase() + host.slice(1);
+    } catch (e) {
+      // Invalid URL
+    }
+  }
+  return signal.source;
+}
+
+// Generate deterministic AI insight
+function getMockInsight(signal: Signal, finalSeverityKey: string): string {
+  const type = (signal.signal_type || "").toUpperCase();
+  if (finalSeverityKey === "critical") return "Critical anomaly detected. High probability of strategic pivot or major disruption.";
+  if (type.includes("HIRE") || type.includes("HIRING") || type.includes("PERSONNEL")) return "Talent acquisition velocity increasing in specialized roles.";
+  if (type.includes("FUNDING") || type.includes("CAPITAL")) return "Capital influx suggests impending growth phase or acquisition strategy.";
+  if (type.includes("LAUNCH") || type.includes("PRODUCT")) return "Product expansion indicates movement into adjacent market territories.";
+  if (finalSeverityKey === "high") return "Elevated activity level. Suggests upcoming strategic announcement.";
+  return "Standard market activity. Monitoring for further developments.";
+}
+
+// ── Component ──────────────────────────────────────────────
+
+interface SignalFeedProps {
+  signals: Signal[];
+  showCompany?: boolean;
+  compact?: boolean;
+}
+
+export default function SignalFeed({
+  signals,
+  showCompany = true,
+  compact = false,
+}: SignalFeedProps) {
+  if (!signals || signals.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant">
+        <Activity className="w-12 h-12 mb-3 opacity-20" />
+        <p className="text-sm">No intelligence signals detected</p>
+      </div>
+    );
+  }
