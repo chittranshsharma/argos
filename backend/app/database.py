@@ -192,3 +192,6 @@ def get_all_signals_feed(limit: int = 100, source: str = None,
         logger.error(f"Error getting signals feed: {e}")
         return []
 
+
+def get_existing_signal_urls(company_id: str) -> set:
+    return ""
