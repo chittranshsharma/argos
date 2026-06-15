@@ -13,4 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class GraphDB:
+    """Neo4j operations for storing and querying the knowledge graph."""
+
+    def __init__(self):
+        self._driver = None
+        self._connection_attempted = False
+
+    def _get_driver(self):
+        """Lazy initialize the Neo4j driver."""
     pass
