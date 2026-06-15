@@ -588,3 +588,6 @@ def compute_analytics_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 # Helper
 # ═══════════════════════════════════════════════════════════
+
+def _parse_json_response(text: str) -> dict:
+    return {}
