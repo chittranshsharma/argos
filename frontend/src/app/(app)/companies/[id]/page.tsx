@@ -89,3 +89,83 @@ export default function CompanyDetailPage() {
   let sentimentText = "Neutral";
   let sentimentColor = "text-status-elevated";
   let sentimentBorder = "border-l-status-elevated";
+  const sentValue = analytics?.current?.sentiment || 7.5;
+  if (sentValue >= 10) {
+    sentimentText = "Positive";
+    sentimentColor = "text-status-success";
+    sentimentBorder = "border-l-status-success";
+  } else if (sentValue <= 5) {
+    sentimentText = "Negative";
+    sentimentColor = "text-status-error";
+    sentimentBorder = "border-l-status-error";
+  }
+
+  const rankDisplay = rank ? `#${rank}` : "--";
+
+  return (
+    <div className="space-y-6">
+      <Link href="/companies" className="inline-flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Entities
+      </Link>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight text-on-surface uppercase">{company.name}</h1>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-status-success/10 text-status-success border border-status-success/20">
+                Active Target
+              </span>
+            </div>
+            <div className="text-sm text-on-surface-variant mt-1 font-medium">
+              Global Technology & Services
+            </div>
+          <div className="flex items-center gap-4 mt-2 text-sm text-on-surface-variant">
+            {company.website && (
+              <a href={company.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                <Globe className="w-4 h-4" /> {company.website.replace(/^https?:\/\//, '')}
+              </a>
+            )}
+            {company.github_org && (
+              <a href={`https://github.com/${company.github_org}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                <Activity className="w-4 h-4" /> GitHub: {company.github_org}
+              </a>
+            )}
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="w-4 h-4" />
+              Last scan: {company.last_monitored ? new Date(company.last_monitored).toLocaleString() : "Never"}
+            </span>
+          </div>
+        </div>
+
+        <button 
+          onClick={handleMonitor}
+          disabled={monitoring}
+          className="flex items-center gap-2 bg-primary text-black font-bold px-5 py-2.5 rounded-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+        >
+          {monitoring ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          {monitoring ? "Scanning..." : "Force Scan"}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div className="intelligence-card p-4 border-l-2 border-l-primary relative group cursor-default">
+          <div className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Activity Score</div>
+          <div className="text-3xl font-bold text-on-surface">{score}</div>
+        </div>
+        <div className="intelligence-card p-4 border-l-2 border-l-surface-bright/50">
+          <div className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Tracked Signals</div>
+          <div className="text-3xl font-bold text-on-surface">{signalsCount}</div>
+        </div>
+        <div className={`intelligence-card p-4 border-l-2 ${sentimentBorder}`}>
+          <div className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Sentiment</div>
+          <div className={`text-3xl font-bold ${sentimentColor}`}>{sentimentText}</div>
+        </div>
+        <div className="intelligence-card p-4 border-l-2 border-l-surface-bright/50">
+          <div className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Network Rank</div>
+          <div className="text-3xl font-bold text-on-surface">{rankDisplay}</div>
+        </div>
+      </div>
+
+      {data.score_breakdown && (
+        <div className="mt-6 bg-surface-low border border-surface-bright/20 p-5 rounded-xl">
