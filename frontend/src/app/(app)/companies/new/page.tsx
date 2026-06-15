@@ -95,3 +95,35 @@ export default function AddCompanyPage() {
             <button
               type="submit"
               disabled={loading || !name}
+              className="flex items-center gap-2 bg-primary text-black font-bold px-6 py-3 rounded-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Initializing Tracking...
+                </>
+              ) : (
+                <>
+                  <Target className="w-5 h-5" />
+                  Lock Target
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+        {loading && (
+          <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+              </span>
+              <p className="text-sm font-mono text-primary animate-pulse">Running auto-discovery sequences...</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
