@@ -50,4 +50,12 @@ def get_company_by_id(company_id: str) -> dict:
 
 
 def add_company(company_data: dict) -> dict:
-    return {}
+    """Insert a new company and return it."""
+    try:
+        client = get_supabase_client()
+        response = client.table("companies").insert(company_data).execute()
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error adding company: {e}")
+        return {}
+
