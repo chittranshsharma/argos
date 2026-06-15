@@ -39,3 +39,18 @@ export default async function LandingPage() {
       </header>
 
       {/* Sections */}
+      <CinematicHero />
+      <LiveMarketIntercepts />
+      <CompanyProfilePreview />
+      <IntelligencePipeline />
+      <GraphShowcase />
+      <VelocityMatrixShowcase />
+      <BriefingShowcase />
+
+      {/* Final CTA */}
+      <div className="w-full bg-surface-low border-t border-surface-bright/30 py-32 text-center flex flex-col items-center">
+        <h2 className="text-5xl md:text-7xl font-bold tracking-tighter uppercase mb-6">
+          Stop Reading News.<br/>
+          <span className="text-primary">Start Reading Intent.</span>
+        </h2>
+        
