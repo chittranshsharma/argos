@@ -194,4 +194,17 @@ def get_all_signals_feed(limit: int = 100, source: str = None,
 
 
 def get_existing_signal_urls(company_id: str) -> set:
-    return ""
+    """Return set of URLs already stored for a company (for dedup)."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("signals")
+            .select("url")
+            .eq("company_id", company_id)
+            .execute()
+        )
+        return {r["url"] for r in (response.data or []) if r.get("url")}
+    except Exception as e:
+        logger.error(f"Error getting existing URLs: {e}")
+        return set()
+
