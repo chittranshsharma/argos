@@ -26,3 +26,6 @@ def get_supabase_client() -> Client:
 
 
 # ── Companies ───────────────────────────────────────────────
+
+def get_all_companies() -> list:
+    return []
