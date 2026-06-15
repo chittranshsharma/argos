@@ -160,3 +160,80 @@ export default function KnowledgeGraphPage() {
 
       let assessment = `Strategic analysis of ${node.label} indicates `;
       if (hires > 0 && launches > 0) {
+        assessment += `aggressive expansion through targeted talent acquisition and rapid product deployment. `;
+      } else if (funding > 0) {
+        assessment += `recent capital influx is likely fueling upcoming strategic maneuvers. `;
+      } else if (competitors > 1) {
+        assessment += `significant competitive pressure from multiple vectors within the sector. `;
+      } else {
+        assessment += `stable positioning with ongoing tactical developments. `;
+      }
+
+      if (competitors > 0) {
+        assessment += `Requires active monitoring of competitor overlaps.`;
+      }
+      return assessment;
+    }
+
+    if (node.type === "event") {
+      const isCritical = node.label.toLowerCase().includes("patent") || node.label.toLowerCase().includes("acquisition");
+      if (isCritical) {
+         return `High-impact anomaly detected. This event signals a probable shift in the associated company's long-term strategy and warrants immediate analyst review.`;
+      }
+      return `Tactical market signal. Indicates elevated activity within the cluster but remains within expected behavioral baselines.`;
+    }
+
+    return `Identified as a structural node within its cluster. Vector connectivity suggests it plays a supporting role in broader market movements.`;
+  };
+
+  return (
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-on-surface flex items-center gap-3">
+            <Network className="w-8 h-8 text-primary" /> Entity Matrix
+          </h1>
+          <p className="text-sm text-on-surface-variant mt-1">
+            Topological map of all tracked entities and their relationships.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 flex gap-6 overflow-hidden">
+        <div ref={containerRef} className="flex-1 glass-panel rounded-2xl overflow-hidden relative border border-surface-bright/30">
+          {loading ? (
+            <div className="absolute inset-0 flex items-center justify-center text-on-surface-variant font-mono text-sm">
+              <span className="relative flex h-3 w-3 mr-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+              </span>
+              Calculating node vectors...
+            </div>
+          ) : (
+            <GraphRenderer 
+              data={data} 
+              onNodeClick={(node) => setSelectedNode(node)} 
+              controlRef={graphControlRef}
+            />
+          )}
+          
+          <div className="absolute top-4 left-4 flex gap-2 flex-wrap max-w-md">
+            {[
+              { label: "Company", color: "bg-[#f59e0b]" },
+              { label: "Competitor", color: "bg-[#ef4444]" },
+              { label: "Executive", color: "bg-[#3b82f6]" },
+              { label: "Funding", color: "bg-[#10b981]" },
+              { label: "Launch", color: "bg-[#8b5cf6]" },
+              { label: "Intel Event", color: "bg-[#f43f5e]" },
+              { label: "Partnership", color: "bg-[#f59e0b]" }
+            ].map(type => (
+              <div key={type.label} className="px-3 py-1.5 rounded-lg bg-surface-lowest/80 backdrop-blur border border-surface-bright/30 flex items-center gap-2 text-xs font-mono text-on-surface">
+                <div className={`w-2 h-2 rounded-full ${type.color}`} /> {type.label}
+              </div>
+            ))}
+          </div>
+
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button onClick={() => graphControlRef.current?.zoomIn()} className="p-2 rounded bg-surface-lowest/80 backdrop-blur border border-surface-bright/30 hover:bg-white/5 transition-colors text-on-surface-variant">
+              <ZoomIn className="w-4 h-4" />
+            </button>
