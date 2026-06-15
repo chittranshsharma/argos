@@ -173,3 +173,62 @@ export default function DashboardPage() {
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="skeleton h-[120px]" />
               ))}
+            </div>
+          ) : (
+            <SignalFeed signals={signals} showCompany={true} />
+          )}
+        </div>
+
+        {/* Sidebar Widgets */}
+        <div className="space-y-6">
+          <div className="intelligence-card p-6">
+            <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4">Trending Entities</h3>
+            <div className="space-y-4">
+              {loading ? (
+                <div className="text-xs text-on-surface-variant">LOADING...</div>
+              ) : trending.length === 0 ? (
+                <div className="text-xs text-on-surface-variant">NO TRENDING DATA</div>
+              ) : trending.map((topic, i) => (
+                <div key={topic.company} className="flex flex-col gap-1.5 group cursor-pointer">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-on-surface hover:text-primary transition-colors font-medium truncate max-w-[150px]">{topic.company}</span>
+                    <span className="font-mono text-xs text-primary">{topic.percentage}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-surface-bright/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary group-hover:bg-primary-hover transition-colors" style={{ width: `${topic.percentage}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="intelligence-card p-6">
+            <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Activity className="w-4 h-4" /> System Anomalies
+            </h3>
+            <div className="flex flex-col gap-3">
+              {loading ? (
+                <div className="text-xs text-on-surface-variant">LOADING...</div>
+              ) : anomalies.length === 0 ? (
+                <div className="text-xs text-on-surface-variant">NO SYSTEM ANOMALIES DETECTED</div>
+              ) : anomalies.map((anomaly) => (
+                <div key={anomaly.id} className={`p-3 border rounded-lg flex gap-3 ${anomaly.impact_level === 'Critical' ? 'bg-status-critical/10 border-status-critical/20' : 'bg-surface-lowest border-surface-bright/20'}`}>
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${anomaly.impact_level === 'Critical' ? 'bg-status-critical animate-pulse' : 'bg-status-elevated'}`} />
+                  <div>
+                    <div className={`text-sm font-semibold ${anomaly.impact_level === 'Critical' ? 'text-status-critical' : 'text-on-surface'}`}>
+                      {anomaly.alert_type.replace(/_/g, ' ')}
+                    </div>
+                    <div className={`text-xs ${anomaly.impact_level === 'Critical' ? 'text-status-critical/70' : 'text-on-surface-variant'}`}>
+                      {anomaly.company_name} - Score {anomaly.confidence_score ? `${anomaly.confidence_score}%` : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
