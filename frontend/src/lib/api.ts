@@ -104,3 +104,53 @@ export async function getCompetitors(companyId: string): Promise<{
 
 export async function getCompanySignals(
   companyId: string,
+  limit = 50,
+  source = "all"
+): Promise<Signal[]> {
+  const params = new URLSearchParams({ limit: String(limit), source });
+  const data = await apiFetch<{ signals: Signal[] }>(
+    `/companies/${companyId}/signals?${params}`
+  );
+  return data.signals;
+}
+
+export async function getSignalFeed(params?: {
+  limit?: number;
+  source?: string;
+  importance?: string;
+  company_id?: string;
+}): Promise<Signal[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.source) searchParams.set("source", params.source);
+  if (params?.importance) searchParams.set("importance", params.importance);
+  if (params?.company_id) searchParams.set("company_id", params.company_id);
+
+  const data = await apiFetch<{ signals: Signal[] }>(
+    `/signals/feed?${searchParams}`
+  );
+  return data.signals;
+}
+
+// ── Reports ────────────────────────────────────────────────
+
+export async function getCompanyReports(
+  companyId: string
+): Promise<Report[]> {
+  const data = await apiFetch<{ reports: Report[] }>(
+    `/companies/${companyId}/reports`
+  );
+  return data.reports;
+}
+
+export async function getAllReports(companyId?: string): Promise<Report[]> {
+  const url = companyId ? `/reports?company_id=${companyId}` : "/reports";
+  const data = await apiFetch<{ reports: Report[] }>(url);
+  return data.reports;
+}
+
+export async function clearReports(): Promise<void> {
+  await apiFetch("/reports", { method: "DELETE" });
+}
+
+// ── Analytics ──────────────────────────────────────────────
