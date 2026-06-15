@@ -31,3 +31,18 @@ const STYLES: Record<Importance, { bg: string; dot: string; text: string }> = {
 const SIZE_STYLES: Record<string, string> = {
   sm: "px-1.5 py-0.5 text-[10px]",
   md: "px-2 py-1 text-xs",
+  lg: "px-3 py-1.5 text-sm",
+};
+
+export default function AlertBadge({
+  importance,
+  count,
+  size = "sm",
+}: AlertBadgeProps) {
+  const style = STYLES[importance] || STYLES.low;
+  const sizeStyle = SIZE_STYLES[size] || SIZE_STYLES.sm;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border font-medium uppercase tracking-wider ${style.bg} ${style.text} ${sizeStyle}`}
+    >
