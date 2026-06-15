@@ -134,3 +134,49 @@ export function CinematicHero() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="text-6xl md:text-8xl font-bold tracking-tighter mb-8 uppercase"
         >
+          Strategic Intelligence,<br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-primary to-primary-hover drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+            Weaponized.
+          </span>
+        </motion.h1>
+
+        {/* Subheadline */}
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="text-lg md:text-xl text-on-surface-variant max-w-3xl mb-16 leading-relaxed border-l-2 border-primary/50 pl-6 text-left"
+        >
+          Track hiring surges, executive movement, partnerships, funding events, and product launches before competitors react.
+        </motion.p>
+
+        {/* LIVE SYSTEM STATUS */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="w-full max-w-4xl border border-primary/20 bg-surface-low/80 backdrop-blur-md p-6 rounded-xl flex flex-col gap-6"
+        >
+          <div className="flex items-center gap-3 border-b border-primary/20 pb-4">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-critical opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-status-critical" />
+            </span>
+            <span className="font-mono text-sm uppercase tracking-widest text-on-surface">Live System Status</span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-left">
+            <LiveCounter label="Companies Monitored" targetValue={2418} />
+            <LiveCounter label="Signals Processed Today" targetValue={847291} />
+            <LiveCounter label="Executive Events" targetValue={43} />
+            <LiveCounter label="Hiring Surges" targetValue={17} />
+          </div>
+        </motion.div>
+
+      </div>
+      
+      {/* Fade out to bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-surface-lowest to-transparent z-10" />
+    </div>
+  );
+}
