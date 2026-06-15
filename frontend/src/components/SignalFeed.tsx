@@ -137,3 +137,51 @@ export default function SignalFeed({
                   [{signal.company_name}]
                 </div>
               )}
+              <h4 className="text-base font-medium text-on-surface leading-snug group-hover:text-primary transition-colors">
+                {signal.url ? (
+                  <a href={signal.url} target="_blank" rel="noopener noreferrer">
+                    {signal.title}
+                  </a>
+                ) : (
+                  signal.title
+                )}
+              </h4>
+
+              {/* Stripped Analysis/Content */}
+              {!compact && signal.content && (
+                <p className="mt-1.5 text-sm text-on-surface-variant line-clamp-1 leading-relaxed">
+                  {stripHtml(signal.content)}
+                </p>
+              )}
+
+              {/* AI Insight */}
+              <div className="mt-3 bg-primary/5 border border-primary/10 rounded-md p-2 flex items-start gap-2">
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest mt-0.5 shrink-0">AI Insight:</span>
+                <span className="text-sm text-on-surface-variant leading-tight">
+                  {getMockInsight(signal, finalSeverityKey)}
+                </span>
+              </div>
+            </div>
+
+            {/* Footer Metrics */}
+            <div className="flex items-center justify-between pt-3 border-t border-surface-bright/20 mt-1">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono text-on-surface-variant">
+                  Source: <span className="text-on-surface capitalize">{getProviderName(signal)}</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-16 h-1.5 bg-surface-bright/30 rounded-full overflow-hidden">
+                  <div className={`h-full ${severity.bg.replace('/10', '')}`} style={{ width: `${confidence}%` }} />
+                </div>
+                <span className="text-xs font-mono text-on-surface-variant">
+                  Conf: {confidence}%
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
