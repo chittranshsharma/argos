@@ -126,3 +126,46 @@ export default function CompaniesPage() {
                         {company.github_org && <span title="GitHub"><Activity className="w-4 h-4" /></span>}
                         <span title="News Intel"><FileText className="w-4 h-4" /></span>
                       </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="font-mono text-sm font-bold text-on-surface">{activityScore}</div>
+                        <div className="w-16 h-1.5 bg-surface-bright/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary" style={{ width: `${activityScore}%` }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono bg-status-success/10 text-status-success border border-status-success/20">
+                        Active
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <button 
+                        onClick={async (e) => {
+                          e.stopPropagation(); // Prevent row click
+                          try {
+                            const { triggerMonitoring } = await import("@/lib/api");
+                            await triggerMonitoring(company.id);
+                            // Set a local state to show it's scanning if we had one, but for now just reload
+                            window.location.reload();
+                          } catch (err) {
+                            console.error("Failed to trigger scan", err);
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-lowest border border-surface-bright/30 rounded text-xs font-bold text-on-surface hover:text-primary transition-colors"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Scan Now
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
