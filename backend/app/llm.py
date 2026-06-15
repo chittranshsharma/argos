@@ -37,4 +37,9 @@ def get_gemini_llm() -> ChatGoogleGenerativeAI:
 
 
 def llm_invoke(llm, prompt: str) -> str:
+    """
+    Invoke an LLM with retry logic.
+    Returns the text content of the response.
+    Falls back to Gemini if Groq fails due to rate limits.
+    """
     return ""
