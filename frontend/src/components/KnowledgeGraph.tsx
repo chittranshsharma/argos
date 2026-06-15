@@ -73,3 +73,38 @@ export default function KnowledgeGraph({
   }, [data]);
 
   if (!graphData.nodes.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-argos-text-dim py-8">
+        <div className="text-3xl mb-2 opacity-30">◎</div>
+        <p className="text-xs">Knowledge graph is empty</p>
+        <p className="text-[10px] mt-1 opacity-60">
+          Entities will appear after analysis
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-argos-border bg-argos-surface/50">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 px-3 pt-3 pb-1">
+        {Object.entries(TYPE_COLORS).map(([type, color]) => (
+          <div key={type} className="flex items-center gap-1">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-[10px] text-argos-text-dim">{type}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Graph */}
+      <ForceGraph2D
+        graphData={graphData}
+        width={width}
+        height={height}
+        backgroundColor="transparent"
+        nodeRelSize={6}
+        nodeColor={(node: Record<string, unknown>) => (node.color as string) || "#6b7280"}
+        nodeLabel={(node: Record<string, unknown>) =>
