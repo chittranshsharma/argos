@@ -22,3 +22,13 @@ export const metadata: Metadata = {
   title: "Argos Intelligence",
   description: "Strategy Command Center for competitive intelligence",
 };
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="dark">
+      <body
+        className={cn(
