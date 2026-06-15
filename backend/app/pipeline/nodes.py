@@ -412,3 +412,6 @@ def store_graph_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 # Node 5: Generate intelligence report with Gemini
 # ═══════════════════════════════════════════════════════════
+
+def generate_report_node(state: dict) -> dict:
+    return {}
