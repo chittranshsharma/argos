@@ -440,3 +440,6 @@ def get_total_reports_count() -> int:
         return 0
 
 # ── Analytics Snapshots ─────────────────────────────────────
+
+def save_analytics_snapshot(metric_type: str, payload: dict) -> None:
+    pass
