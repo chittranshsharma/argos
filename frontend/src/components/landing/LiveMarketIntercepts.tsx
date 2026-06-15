@@ -26,3 +26,27 @@ const NEW_SIGNALS: Signal[] = [
   { id: "7", time: "12:08:14", type: "PARTNERSHIP", company: "Microsoft", description: "Exclusive cloud compute deal signed", confidence: 91, impact: "STRATEGIC" },
   { id: "8", time: "12:09:59", type: "EXECUTIVE MOVEMENT", company: "xAI", description: "Chief Scientist departure detected", confidence: 77, impact: "HIGH" },
 ];
+
+export function LiveMarketIntercepts() {
+  const [signals, setSignals] = useState<Signal[]>(INITIAL_SIGNALS);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSignals((prev) => {
+        const signalToAdd = { ...NEW_SIGNALS[index], id: Date.now().toString() + Math.random() };
+        return [signalToAdd, ...prev].slice(0, 8);
+      });
+      setIndex((prev) => (prev + 1) % NEW_SIGNALS.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [index]);
+
+  return (
+    <div className="w-full max-w-7xl mx-auto px-6 py-24">
+      <div className="flex flex-col gap-2 mb-12">
+        <h2 className="text-sm font-mono text-primary uppercase tracking-widest flex items-center gap-2">
+          <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+          Live Market Intercepts
+        </h2>
+        <div className="h-px w-full bg-surface-bright/50"></div>
