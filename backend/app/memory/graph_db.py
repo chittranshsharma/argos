@@ -21,4 +21,127 @@ class GraphDB:
 
     def _get_driver(self):
         """Lazy initialize the Neo4j driver."""
-    pass
+        if not self._connection_attempted:
+            self._connection_attempted = True
+            if NEO4J_URI and NEO4J_PASSWORD:
+                try:
+                    self._driver = GraphDatabase.driver(
+                        NEO4J_URI,
+                        auth=(NEO4J_USERNAME, NEO4J_PASSWORD),
+                    )
+                    # Verify connectivity
+                    self._driver.verify_connectivity()
+                    logger.info("Connected to Neo4j")
+                except Exception as e:
+                    logger.warning(f"Neo4j connection failed (non-fatal): {e}")
+                    self._driver = None
+            else:
+                logger.info("Neo4j not configured — graph features disabled")
+        return self._driver
+
+    def close(self):
+        """Close the Neo4j driver."""
+        driver = self._get_driver()
+        if driver:
+            driver.close()
+
+    def merge_entity(self, name: str, entity_type: str,
+                     description: str, company_name: str) -> None:
+        """
+        Create or update an entity node in Neo4j.
+        Labels: Company, Person, Technology, Product, Competitor
+        """
+        driver = self._get_driver()
+        if not driver or not name:
+            return
+
+        # Sanitize label
+        valid_labels = {"Company", "Person", "Technology", "Product", "Competitor"}
+        label = entity_type if entity_type in valid_labels else "Entity"
+
+        query = f"""
+        MERGE (n:{label} {{name: $name}})
+        SET n.description = $description,
+            n.company_context = $company_name,
+            n.updated_at = datetime()
+        RETURN n
+        """
+
+        try:
+            with driver.session(database=NEO4J_DATABASE) as session:
+                session.run(query, name=name, description=description,
+                           company_name=company_name)
+        except Exception as e:
+            logger.error(f"Neo4j merge entity error: {e}")
+
+    def merge_relationship(self, source: str, relation: str,
+                           target: str, company_name: str) -> None:
+        """
+        Create or update a relationship between two entities.
+        If entities don't exist, they're created as generic Entity nodes.
+        """
+        driver = self._get_driver()
+        if not driver or not source or not target:
+            return
+
+        # Sanitize relation name (Neo4j requires uppercase, no spaces)
+        rel_type = relation.upper().replace(" ", "_").replace("-", "_")
+        if not rel_type.isidentifier():
+            rel_type = "RELATED_TO"
+
+        query = f"""
+        MERGE (a {{name: $source}})
+        MERGE (b {{name: $target}})
+        MERGE (a)-[r:{rel_type}]->(b)
+        SET r.company_context = $company_name,
+            r.updated_at = datetime()
+        RETURN a, r, b
+        """
+
+        try:
+            with driver.session(database=NEO4J_DATABASE) as session:
+                session.run(query, source=source, target=target,
+                           company_name=company_name)
+        except Exception as e:
+            logger.error(f"Neo4j merge relationship error: {e}")
+
+    def get_company_graph(self, company_name: str) -> dict:
+        """
+        Get all nodes and relationships associated with a company
+        for visualization in the frontend.
+        Returns {nodes: [...], links: [...]}.
+        """
+        driver = self._get_driver()
+        if not driver:
+            return {"nodes": [], "links": []}
+
+        query = """
+        MATCH (n)
+        WHERE n.company_context = $company_name
+        OPTIONAL MATCH (n)-[r]->(m)
+        WHERE m.company_context = $company_name
+        RETURN collect(DISTINCT {
+            id: elementId(n),
+            name: n.name,
+            type: labels(n)[0],
+            description: n.description
+        }) AS nodes,
+        collect(DISTINCT {
+            source: n.name,
+            target: m.name,
+            relation: type(r)
+        }) AS links
+        """
+
+        try:
+            with driver.session(database=NEO4J_DATABASE) as session:
+                result = session.run(query, company_name=company_name)
+                record = result.single()
+                if record:
+                    nodes = [n for n in record["nodes"] if n.get("name")]
+                    links = [l for l in record["links"] if l.get("source") and l.get("target")]
+                    return {"nodes": nodes, "links": links}
+        except Exception as e:
+            logger.error(f"Neo4j query error: {e}")
+
+        return {"nodes": [], "links": []}
