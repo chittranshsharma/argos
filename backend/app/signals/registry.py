@@ -59,3 +59,6 @@ class SignalSubtype(str, Enum):
     GENERAL_NEWS = "GENERAL_NEWS"
     HACKER_NEWS = "HACKER_NEWS"
     REDDIT_POST = "REDDIT_POST"
+
+class SignalStatus(str, Enum):
+    pass
