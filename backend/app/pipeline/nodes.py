@@ -238,4 +238,29 @@ def filter_new_signals_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def analyze_signals_node(state: dict) -> dict:
+    """Use Groq to analyze new signals and extract structured insights."""
+    new_signals = state.get("new_signals", [])
+    company_name = state["company_name"]
+
+    if not new_signals:
+        return {
+            "analysis": {},
+            "key_findings": [],
+            "hiring_trends": [],
+            "tech_signals": [],
+            "entities": [],
+            "relationships": [],
+        }
+
+    # Prepare signal summaries for LLM
+    signal_summaries = []
+    for s in new_signals[:50]:  # Limit to avoid token overflow
+        signal_summaries.append(
+            f"[{s.get('source', 'unknown')}] {s.get('title', '')}: "
+            f"{(s.get('content', '') or '')[:200]}"
+        )
+
+    signals_text = "\n".join(signal_summaries)
+
+    prompt = f"""You are a competitive intelligence analyst. Analyze these signals about {company_name} and return a JSON object.
     return {}
