@@ -92,3 +92,48 @@ export default function SignalFeed({
       </div>
     );
   }
+
+  return (
+    <div className="space-y-4">
+      {signals.map((signal) => {
+        // Derive visual properties
+        const severityKey = mapImportanceToSeverity(signal.importance);
+        // Elevate to critical if high score
+        const finalSeverityKey = (severityKey === "high" && (signal.score || 0) > 0.9) ? "critical" : severityKey;
+        const severity = SEVERITY_STYLES[finalSeverityKey];
+        const SeverityIcon = severity.icon;
+
+        const confidence = signal.score ? Math.round(signal.score * 100) : (80 + (signal.id.length % 20)); // Fallback for UI density if score missing
+        const signalType = (signal.signal_type || "Market Event").replace(/_/g, ' ').toUpperCase();
+
+        return (
+          <div
+            key={signal.id}
+            className={`intelligence-card p-5 group flex flex-col gap-3 relative overflow-hidden`}
+          >
+            {/* Left Accent Line based on Severity */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${severity.bg} opacity-50`} />
+
+            {/* Header: Meta tags */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest border border-surface-bright/30 bg-surface-lowest px-2 py-0.5 rounded">
+                  {signalType}
+                </span>
+                <span className={`text-[10px] font-mono uppercase tracking-widest border px-2 py-0.5 rounded flex items-center gap-1 ${severity.bg} ${severity.text} ${severity.border}`}>
+                  <SeverityIcon className="w-3 h-3" />
+                  {severity.label}
+                </span>
+              </div>
+              <span className="text-xs font-mono text-on-surface-variant">
+                {timeAgo(signal.collected_at)}
+              </span>
+            </div>
+
+            {/* Main Content */}
+            <div>
+              {showCompany && (
+                <div className="text-xs font-mono font-bold text-on-surface-variant mb-1 tracking-widest uppercase">
+                  [{signal.company_name}]
+                </div>
+              )}
