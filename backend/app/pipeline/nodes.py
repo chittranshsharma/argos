@@ -590,4 +590,29 @@ def compute_analytics_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def _parse_json_response(text: str) -> dict:
+    """Extract and parse JSON from an LLM response."""
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to find JSON block in markdown code fences
+    import re
+    json_match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Try to find JSON object pattern
+    json_match = re.search(r"\{.*\}", text, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+
+    logger.warning("Failed to parse JSON from LLM response")
     return {}
