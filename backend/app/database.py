@@ -327,4 +327,10 @@ def update_signal_score(signal_id: str, score: int):
 # ── Manual Actions ──────────────────────────────────────────────────
 
 def save_alert(alert_data: dict) -> None:
-    pass
+    """Insert a new alert record."""
+    try:
+        client = get_supabase_client()
+        client.table("alerts").insert(alert_data).execute()
+    except Exception as e:
+        logger.error(f"Error saving alert: {e}")
+
