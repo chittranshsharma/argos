@@ -180,3 +180,88 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* Middle Section: Anomalies & Distributions */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+        
+        <div className="xl:col-span-2 bg-surface/50 border border-status-critical/30 p-0 flex flex-col">
+          <div className="flex items-center gap-2 p-4 border-b border-status-critical/20 bg-status-critical/5">
+            <AlertTriangle className="w-4 h-4 text-status-critical" />
+            <h3 className="text-sm font-mono uppercase font-bold text-status-critical tracking-wider">Anomaly Correlation Log</h3>
+          </div>
+          <div className="p-0 overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono">
+              <thead>
+                <tr className="text-on-surface-variant border-b border-surface-bright/20 bg-surface-bright/5">
+                  <th className="p-3 font-normal">TIMESTAMP</th>
+                  <th className="p-3 font-normal">ENTITY</th>
+                  <th className="p-3 font-normal">TYPE</th>
+                  <th className="p-3 font-normal text-center">CONFIDENCE</th>
+                  <th className="p-3 font-normal">IMPACT</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-bright/10">
+                {loading ? (
+                  <tr><td colSpan={5} className="py-8 text-center text-on-surface-variant">LOADING LOGS...</td></tr>
+                ) : anomalies.length === 0 ? (
+                  <tr><td colSpan={5} className="py-8 text-center text-on-surface-variant">NO CRITICAL ANOMALIES DETECTED</td></tr>
+                ) : anomalies.map((a) => (
+                  <tr key={a.id} className="hover:bg-surface-bright/5 transition-colors">
+                    <td className="p-3 text-on-surface-variant">{new Date(a.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td className="p-3 text-on-surface font-bold">{a.company_name}</td>
+                    <td className="p-3 text-on-surface">{a.alert_type.toUpperCase()}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded bg-surface-bright/20 ${a.confidence_score && a.confidence_score > 90 ? 'text-status-success' : 'text-status-info'}`}>
+                        {a.confidence_score ? `${a.confidence_score}%` : 'N/A'}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded border ${a.impact_level === 'Critical' ? 'border-status-critical text-status-critical bg-status-critical/10' : 'border-status-info text-status-info bg-status-info/10'}`}>
+                        {a.impact_level?.toUpperCase() || 'HIGH'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="xl:col-span-3 grid grid-cols-2 gap-4">
+          <div className="bg-surface/50 border border-surface-bright/30 p-4">
+            <div className="flex items-center gap-2 mb-4 border-b border-surface-bright/20 pb-2">
+              <Zap className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-mono uppercase font-bold text-on-surface tracking-wider">Score Distribution</h3>
+            </div>
+            <div className="h-[200px] w-full">
+              {loading ? (
+                <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-xs">LOADING...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={distribution} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222" horizontal={true} vertical={false} />
+                    <XAxis type="number" stroke="#666" fontSize={10} tickLine={false} axisLine={false} hide />
+                    <YAxis type="category" dataKey="range" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} width={50} />
+                    <RechartsTooltip 
+                      cursor={{fill: '#222'}}
+                      contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '0px', fontFamily: 'monospace', fontSize: '12px' }}
+                    />
+                    <Bar dataKey="count" fill="#4ade80" radius={[0, 2, 2, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-surface/50 border border-surface-bright/30 p-4">
+            <div className="flex items-center gap-2 mb-4 border-b border-surface-bright/20 pb-2">
+              <Activity className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-mono uppercase font-bold text-on-surface tracking-wider">Share of Voice</h3>
+            </div>
+            <div className="h-[200px] w-full relative flex gap-4">
+              {loading ? (
+                <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-xs">LOADING...</div>
+              ) : sov.length === 0 ? (
+                <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-xs">NO DATA</div>
+              ) : (
+                <>
