@@ -570,4 +570,21 @@ def generate_alerts_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def compute_analytics_node(state: dict) -> dict:
-    return {}
+    """Compute and store analytics metrics based on current signals."""
+    company_id = state["company_id"]
+    company_name = state["company_name"]
+    
+    try:
+        engine = AnalyticsEngine()
+        payload = engine.compute_analytics(company_id, company_name)
+        logger.info(f"Computed analytics for {company_name}: Score {payload.get('total')}")
+        return {"analysis": {**state.get("analysis", {}), "analytics": payload}}
+    except Exception as e:
+        logger.error(f"Failed to compute analytics for {company_name}: {e}")
+        return {}
+
+
+
+# ═══════════════════════════════════════════════════════════
+# Helper
+# ═══════════════════════════════════════════════════════════
