@@ -35,3 +35,21 @@ export function CompanyProfilePreview() {
               <div className="text-right">
                 <p className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Intelligence Score</p>
                 <p className="text-4xl font-mono font-bold text-status-success">91<span className="text-lg text-on-surface-variant">/100</span></p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-surface-lowest p-4 rounded border border-surface-bright/30">
+                <p className="text-xs font-mono text-on-surface-variant uppercase mb-2">Signals (30D)</p>
+                <p className="text-2xl font-mono text-on-surface">147</p>
+              </div>
+              <div className="bg-surface-lowest p-4 rounded border border-surface-bright/30">
+                <p className="text-xs font-mono text-on-surface-variant uppercase mb-2">Confidence Matrix</p>
+                <p className="text-2xl font-mono text-primary">89%</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-4">Detected Vectors</p>
+              <div className="space-y-3">
+                {[
