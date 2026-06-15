@@ -66,3 +66,31 @@ export default function HiringTrends({ trends }: HiringTrendsProps) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-argos-text-dim">
         <div className="text-3xl mb-2 opacity-30">▣</div>
+        <p className="text-xs">No hiring data available</p>
+        <p className="text-[10px] mt-1 opacity-60">
+          Job posting signals will populate this chart
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Legend */}
+      <div className="flex gap-4 mb-3 px-1">
+        {Object.entries(TREND_COLORS).map(([trend, color]) => (
+          <div key={trend} className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 rounded-sm"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-[10px] text-argos-text-dim capitalize">
+              {trend}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={trends} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
