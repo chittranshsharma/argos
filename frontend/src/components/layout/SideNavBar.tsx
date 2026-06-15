@@ -35,3 +35,27 @@ export function SideNavBar() {
           <div className="relative flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 border border-primary/30 group-hover:bg-primary/20 transition-all duration-300">
             <span className="text-primary font-bold text-base">A</span>
             <div className="absolute inset-0 rounded-md bg-primary/5 animate-pulse-glow" />
+          </div>
+          <span className="text-lg font-bold tracking-tight text-on-surface">
+            Argos
+          </span>
+        </Link>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-6 px-3 flex flex-col gap-6">
+        <div className="px-3">
+          <Link 
+            href="/companies/new"
+            className="flex items-center justify-center gap-2 w-full bg-primary text-black font-bold px-4 py-2 rounded-lg hover:scale-[1.02] active:scale-95 transition-transform"
+          >
+            <Plus className="w-4 h-4" />
+            Add Company
+          </Link>
+        </div>
+
+        <nav className="flex flex-col gap-1">
+          <div className="px-3 pb-2 font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+            Core Systems
+          </div>
+          {CORE_ITEMS.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
