@@ -118,3 +118,6 @@ def save_signal(signal_data: dict) -> dict:
         logger.error(f"Error saving signal: {e}")
         return {}
 
+
+def get_signals(company_id: str, limit: int = 50, source: str = None) -> list:
+    pass
