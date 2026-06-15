@@ -65,3 +65,33 @@ export default function AddCompanyPage() {
               className="w-full bg-surface-lowest border border-surface-bright/50 rounded-lg px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50"
               placeholder="e.g. OpenAI"
               required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-mono text-on-surface-variant uppercase tracking-widest">
+              Primary Domain (Optional)
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                <Search className="h-4 w-4 text-on-surface-variant" />
+              </div>
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                className="w-full bg-surface-lowest border border-surface-bright/50 rounded-lg pl-10 pr-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50"
+                placeholder="https://openai.com"
+                disabled={loading}
+              />
+            </div>
+            <p className="text-xs text-on-surface-variant mt-1.5">
+              Providing a domain improves auto-discovery accuracy.
+            </p>
+          </div>
+
+          <div className="pt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading || !name}
