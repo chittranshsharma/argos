@@ -32,3 +32,15 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body
         className={cn(
+          "min-h-screen bg-background text-foreground antialiased selection:bg-primary/30",
+          fontSans.variable,
+          fontMono.variable,
+          fontBody.variable
+        )}
+        suppressHydrationWarning
+      >
+        {children}
+      </body>
+    </html>
+  );
+}
