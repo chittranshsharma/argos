@@ -61,3 +61,24 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-4">
                       <div className={`p-2 rounded-lg ${isDegraded ? 'bg-status-elevated/10 text-status-elevated' : 'bg-status-success/10 text-status-success'}`}>
                         <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-on-surface text-sm">{source.name}</h4>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Last Sync: {source.sync}</p>
+                      </div>
+                    </div>
+                    <button className="text-sm text-on-surface-variant hover:text-primary transition-colors">
+                      Configure
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
