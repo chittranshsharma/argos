@@ -164,4 +164,31 @@ def get_new_signals(company_id: str) -> list:
 
 
 def get_all_signals_feed(limit: int = 100, source: str = None,
-    pass
+                         importance: str = None, company_id: str = None) -> list:
+    """Get latest signals across all companies with optional filters."""
+    try:
+        client = get_supabase_client()
+        query = (
+            client.table("signals")
+            .select("*")
+            .order("collected_at", desc=True)
+            .limit(limit)
+        )
+        if source and source != "all":
+            query = query.eq("source", source)
+        if importance:
+            query = query.eq("importance", importance)
+        if company_id:
+            query = query.eq("company_id", company_id)
+        response = query.execute()
+        signals = response.data or []
+        for s in signals:
+            raw = s.get("raw_data", {})
+            for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+                if key in raw:
+                    s[key] = raw[key]
+        return signals
+    except Exception as e:
+        logger.error(f"Error getting signals feed: {e}")
+        return []
+
