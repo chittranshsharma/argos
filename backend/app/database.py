@@ -315,3 +315,6 @@ def get_signal_baseline(company_id: str, source: str) -> dict:
         return {"weekly_avg": weekly_avg, "total_30d": total, "current_week_count": current_week_count}
     except Exception as e:
         return {"weekly_avg": 0, "total_30d": 0, "current_week_count": 0}
+
+def update_signal_score(signal_id: str, score: int):
+    return ""
