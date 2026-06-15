@@ -68,3 +68,36 @@ export default function LoginPage() {
               {isSignUp ? "Create a new operator identity" : "Secure access to the Command Center"}
             </p>
           </div>
+
+          <form className="space-y-4" onSubmit={handleAuth}>
+            <div className="space-y-2">
+              <label className="text-xs font-mono text-on-surface-variant uppercase tracking-widest">
+                Operator ID
+              </label>
+              <input 
+                type="email" 
+                placeholder="agent@argos.local"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full bg-surface-lowest border border-surface-bright/50 rounded-lg px-4 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-mono text-on-surface-variant uppercase tracking-widest">
+                Passkey
+              </label>
+              <input 
+                type="password" 
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full bg-surface-lowest border border-surface-bright/50 rounded-lg px-4 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+              />
+            </div>
+
+            {error && (
+              <div className="text-sm text-status-danger bg-status-danger/10 p-3 rounded border border-status-danger/20">
+                {error}
