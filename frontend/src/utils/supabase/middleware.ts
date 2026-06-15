@@ -24,3 +24,15 @@ export async function updateSession(request: NextRequest) {
           )
         },
       },
+    }
+  )
+
+  // refreshing the auth token
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login')
+
+  if (!user && !isAuthPage && request.nextUrl.pathname !== '/') {
+    // no user, potentially respond by redirecting the user to the login page
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
