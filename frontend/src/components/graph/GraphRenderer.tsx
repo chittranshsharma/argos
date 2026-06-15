@@ -154,3 +154,56 @@ export default function GraphRenderer({ data, onNodeClick, controlRef }: GraphRe
             x: start.x + (end.x - start.x) / 2,
             y: start.y + (end.y - start.y) / 2
           };
+
+          const relLink = { x: end.x - start.x, y: end.y - start.y };
+          const maxTextLength = Math.sqrt(Math.pow(relLink.x, 2) + Math.pow(relLink.y, 2)) - LABEL_NODE_MARGIN * 2;
+
+          let textAngle = Math.atan2(relLink.y, relLink.x);
+          // Maintain label upright
+          if (textAngle > Math.PI / 2) textAngle = -(Math.PI - textAngle);
+          if (textAngle < -Math.PI / 2) textAngle = -(-Math.PI - textAngle);
+
+          const fontSize = Math.min(MAX_FONT_SIZE, maxTextLength / (link.label.length * 0.5));
+          if (fontSize < 1) return; // don't draw if it's too small
+
+          ctx.font = `${fontSize}px Sans-Serif`;
+          const textWidth = ctx.measureText(link.label).width;
+          const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
+
+          ctx.save();
+          ctx.translate(textPos.x, textPos.y);
+          ctx.rotate(textAngle);
+
+          ctx.fillStyle = 'rgba(20, 13, 6, 0.85)';
+          ctx.fillRect(- bckgDimensions[0] / 2, - bckgDimensions[1] / 2, bckgDimensions[0], bckgDimensions[1]);
+
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.fillText(link.label, 0, 0);
+          ctx.restore();
+        }}
+        // Custom node rendering to make labels primary
+        nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          const label = node.label;
+          const fontSize = 12 / globalScale;
+          ctx.font = `${fontSize}px Sans-Serif`;
+          
+          // Draw Node Circle
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI, false);
+          ctx.fillStyle = node.color;
+          ctx.fill();
+
+          // Draw Label if zoomed in enough or if it's a big node
+          if (globalScale > 1.5 || node.val > 10) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = node.type === 'company' ? '#ffffff' : 'rgba(255, 255, 255, 0.8)';
+            ctx.fillText(label, node.x, node.y + node.val + (fontSize * 1.2));
+          }
+        }}
+      />
+    </div>
+  );
+}
