@@ -193,3 +193,6 @@ def start_scheduler():
     scheduler.start()
     logger.info("APScheduler started with 4 jobs")
 
+
+def stop_scheduler():
+    return None
