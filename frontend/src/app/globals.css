@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-primary: #f59e0b;
+  --color-primary-hover: #d97706;
+  --color-primary-container: #451a03;
+  --color-primary-on-container: #fef3c7;
+
+  --color-surface-lowest: #140d06;
+  --color-surface-low: #19120a;
+  --color-surface: #221a12;
+  --color-surface-bright: #41382e;
+
+  --color-on-surface: #e7e0d8;
+  --color-on-surface-variant: #a8a29e;
+
+  --color-status-critical: #ef4444;
+  --color-status-elevated: #f59e0b;
+  --color-status-moderate: #3b82f6;
+  --color-status-success: #10b981;
+
+  --font-sans: "Hanken Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-body: "Inter", sans-serif;
+
+  --radius-xl: 12px;
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+}
+
+@theme inline {
+  --color-background: var(--color-surface-lowest);
+  --color-foreground: var(--color-on-surface);
+  --color-card: var(--color-surface-low);
+  --color-card-foreground: var(--color-on-surface);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-on-surface);
+  --color-primary-shadcn: var(--color-primary);
+  --color-primary-foreground: #000000;
+  --color-secondary: var(--color-surface-bright);
+  --color-secondary-foreground: var(--color-on-surface);
+  --color-muted: var(--color-surface-bright);
