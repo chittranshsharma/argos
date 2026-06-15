@@ -105,3 +105,54 @@ export default function AddCompanyModal({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Zerodha"
+                  className="w-full rounded-xl bg-argos-surface-2 border border-argos-border px-4 py-3 text-sm text-argos-text placeholder:text-argos-text-dim focus:border-argos-accent focus:outline-none focus:ring-1 focus:ring-argos-accent/30 transition-all"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-argos-text-muted mb-1.5">
+                  Website URL
+                  <span className="text-argos-text-dim font-normal ml-1">(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full rounded-xl bg-argos-surface-2 border border-argos-border px-4 py-3 text-sm text-argos-text placeholder:text-argos-text-dim focus:border-argos-accent focus:outline-none focus:ring-1 focus:ring-argos-accent/30 transition-all"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-xl bg-argos-danger/10 border border-argos-danger/30 px-4 py-3 text-sm text-argos-danger">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={handleDiscover}
+                disabled={!name.trim() || loading}
+                className="w-full rounded-xl bg-argos-accent hover:bg-argos-accent-hover disabled:opacity-50 disabled:cursor-not-allowed px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg hover:shadow-argos-accent/20"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Discovering sources for {name}...
+                  </span>
+                ) : (
+                  "Discover & Track"
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Discovery Results */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-argos-text">
+                Sources Discovered ✓
+              </h2>
+              <p className="text-sm text-argos-text-dim mt-1">
+                {name} has been added and monitoring has started
