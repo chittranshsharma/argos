@@ -59,3 +59,6 @@ def add_company(company_data: dict) -> dict:
         logger.error(f"Error adding company: {e}")
         return {}
 
+
+def update_company(company_id: str, updates: dict) -> dict:
+    return {}
