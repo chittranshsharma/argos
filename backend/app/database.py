@@ -451,3 +451,6 @@ def save_analytics_snapshot(metric_type: str, payload: dict) -> None:
         }).execute()
     except Exception as e:
         logger.error(f"Error saving analytics snapshot {metric_type}: {e}")
+
+def get_latest_analytics_snapshot(metric_type: str) -> dict:
+    return {}
