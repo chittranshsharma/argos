@@ -16,4 +16,8 @@ MAJOR_VERSION_PATTERN = re.compile(r"\bv?\d+\.0(?:\.0)?\b", re.IGNORECASE)
 
 
 class ChangelogAgent:
+    """Scrapes changelog/release-notes pages for product updates."""
+
+    def collect(self, changelog_url: str, company_name: str, company_id: str) -> list[dict]:
+        """
     pass
