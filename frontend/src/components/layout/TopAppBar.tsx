@@ -64,3 +64,25 @@ export function TopAppBar() {
           >
             <User className="h-4 w-4" />
           </button>
+
+          {showProfileMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-surface border border-surface-bright/30 rounded-xl shadow-lg shadow-black/50 overflow-hidden z-50 animate-slide-up origin-top-right">
+              <div className="px-4 py-3 border-b border-surface-bright/20">
+                <p className="text-sm font-medium text-on-surface">Operator Session</p>
+              </div>
+              <div className="p-2">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Terminate Session
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
