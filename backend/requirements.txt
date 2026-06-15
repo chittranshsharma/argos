@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-dotenv
+supabase
+neo4j
+langchain
