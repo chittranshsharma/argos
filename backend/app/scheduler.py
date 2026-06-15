@@ -77,3 +77,6 @@ def run_monitoring_cycle():
     except Exception as e:
         logger.error(f"Monitoring cycle failed: {e}")
 
+
+def send_weekly_digest():
+    return None
