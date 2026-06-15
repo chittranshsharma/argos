@@ -208,3 +208,6 @@ def get_existing_signal_urls(company_id: str) -> set:
         logger.error(f"Error getting existing URLs: {e}")
         return set()
 
+
+def mark_signals_seen(company_id: str) -> None:
+    pass
