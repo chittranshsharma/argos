@@ -434,4 +434,75 @@ def generate_report_node(state: dict) -> dict:
     tech_text = json.dumps(tech_signals, indent=2) if tech_signals else "None detected"
 
     prompt = f"""Generate a professional competitive intelligence report in Markdown format for {company_name}.
-    return {}
+
+DATA:
+Signals ({len(new_signals)} total):
+{signals_text}
+
+Key Findings:
+{findings_text}
+
+Hiring Trends:
+{hiring_text}
+
+Technology Signals:
+{tech_text}
+
+FORMAT THE REPORT AS:
+## Competitive Intelligence: {company_name}
+### Executive Summary
+(2-3 sentence overview of the most important developments)
+
+### Key Signals This Week
+(Bullet points of the most important signals, grouped by source)
+
+### Hiring Trends
+(Analysis of job openings, growing/declining departments)
+
+### Technology Signals
+(New technologies adopted, migrations, deprecations)
+
+### Product Updates
+(Changelog entries, releases, launches)
+
+### Knowledge Graph Insights
+(Interesting connections between entities — competitors, technologies, people)
+
+### Recommended Actions
+(3-5 actionable recommendations based on the intelligence)
+
+Make it concise, professional, and actionable. Use bullet points and bold for emphasis."""
+
+    try:
+        llm = get_groq_llm()
+        report = llm_invoke(llm, prompt)
+    except Exception as e:
+        logger.error(f"Report generation failed: {e}")
+        report = f"## {company_name} — Report Generation Failed\n\nError: {str(e)[:200]}"
+
+    # Save report to Supabase
+    now = datetime.now(timezone.utc)
+    report_data = {
+        "company_id": company_id,
+        "company_name": company_name,
+        "report_markdown": report,
+        "signals_analyzed": len(new_signals),
+        "key_findings": key_findings,
+        "hiring_trends": hiring_trends,
+        "tech_signals": tech_signals,
+        "generated_at": now.isoformat(),
+        "period_start": (now - __import__("datetime").timedelta(days=7)).isoformat(),
+        "period_end": now.isoformat(),
+    }
+
+    try:
+        save_report(report_data)
+    except Exception as e:
+        logger.error(f"Failed to save report: {e}")
+
+    return {"report": report}
+
+
+# ═══════════════════════════════════════════════════════════
+# Node 6: Generate alerts for high-importance signals
+# ═══════════════════════════════════════════════════════════
