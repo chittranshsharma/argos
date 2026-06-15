@@ -12,3 +12,9 @@ export default function AppLayout({
       <div className="flex-1 ml-64 flex flex-col">
         <TopAppBar />
         <main className="flex-1 p-6 md:p-8 overflow-x-hidden">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
