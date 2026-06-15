@@ -15,4 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class NewsAgent:
+    """Collects news signals from Google News and Bing News RSS feeds."""
+
+    def collect(self, keywords: list[str], company_name: str, company_id: str) -> list[dict]:
+        """
     pass
