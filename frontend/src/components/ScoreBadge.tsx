@@ -14,3 +14,8 @@ export function ScoreBadge({ score }: ScoreBadgeProps) {
       className="text-xs font-mono font-bold px-1.5 py-0.5 
         rounded border"
       style={{ color, borderColor: color, backgroundColor: `${color}15` }}
+    >
+      {score}
+    </span>
+  );
+}
