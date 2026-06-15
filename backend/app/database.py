@@ -351,3 +351,6 @@ def get_unsent_alerts() -> list:
         logger.error(f"Error getting unsent alerts: {e}")
         return []
 
+
+def mark_alert_sent(alert_id: str, channels: list[str]) -> None:
+    pass
