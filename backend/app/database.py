@@ -82,3 +82,6 @@ def deactivate_company(company_id: str) -> dict:
 
 
 # ── Signals ─────────────────────────────────────────────────
+
+def save_source(source_data: dict) -> str:
+    return {}
