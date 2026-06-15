@@ -391,3 +391,6 @@ def get_executive_movements(company_id: str) -> list:
 # ── Alerts ───────────────────────────────────────────────────
 
 # ── Stats ───────────────────────────────────────────────────
+
+def get_signals_today_count() -> int:
+    return None
