@@ -325,3 +325,6 @@ def update_signal_score(signal_id: str, score: int):
         logger.error(f"Failed to update signal score: {e}")
 
 # ── Manual Actions ──────────────────────────────────────────────────
+
+def save_alert(alert_data: dict) -> None:
+    pass
