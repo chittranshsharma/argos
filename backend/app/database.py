@@ -317,4 +317,11 @@ def get_signal_baseline(company_id: str, source: str) -> dict:
         return {"weekly_avg": 0, "total_30d": 0, "current_week_count": 0}
 
 def update_signal_score(signal_id: str, score: int):
-    return ""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        client.table("signals").update({"score": score}).eq("id", signal_id).execute()
+    except Exception as e:
+        logger.error(f"Failed to update signal score: {e}")
+
+# ── Manual Actions ──────────────────────────────────────────────────
