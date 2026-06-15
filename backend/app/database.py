@@ -376,3 +376,6 @@ def get_job_signals(company_id: str, days: int = 30) -> list:
         .gte("collected_at", since)\
         .execute()
     return result.data or []
+
+def get_executive_movements(company_id: str) -> list:
+    return []
