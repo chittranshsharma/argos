@@ -221,3 +221,6 @@ def mark_signals_seen(company_id: str) -> None:
 
 
 # ── Reports ─────────────────────────────────────────────────
+
+def save_report(report_data: dict) -> None:
+    pass
