@@ -249,3 +249,86 @@ export default function CompanyDetailPage() {
                       <li>Hiring velocity increased steadily</li>
                       <li>Acquisition activity detected in AI sector</li>
                       <li>New open source initiative announced</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-6 pt-3 border-t border-surface-bright/20">
+                    <div>
+                      <h5 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Risk Assessment</h5>
+                      <span className="text-sm text-status-elevated font-medium">Medium</span>
+                    </div>
+                    <div>
+                      <h5 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Market Outlook</h5>
+                      <span className="text-sm text-status-success font-medium">Positive</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Link 
+                  href="/reports" 
+                  className="flex items-center justify-center w-full gap-2 text-sm bg-surface-lowest border border-surface-bright/30 py-2 rounded text-on-surface hover:text-primary transition-colors font-medium mt-4"
+                >
+                  View Full Report <ExternalLink className="w-4 h-4" />
+                </Link>
+              </div>
+            ) : (
+              <div className="text-sm text-on-surface-variant text-center py-4">
+                No intelligence briefings generated yet.
+              </div>
+            )}
+          </div>
+
+          <div className="intelligence-card p-5">
+             <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" /> Threat Matrix
+            </h3>
+            {/* Analytics Breakdown */}
+              <div className="space-y-4">
+                {(analytics?.current ? [
+                  { label: "Signal Volume", value: `${analytics.current.signal_volume}/25`, score: (analytics.current.signal_volume/25)*100, color: "bg-primary", text: "text-primary" },
+                  { label: "Hiring Velocity", value: `${analytics.current.hiring_velocity}/18`, score: (analytics.current.hiring_velocity/18)*100, color: "bg-status-success", text: "text-status-success" },
+                  { label: "Funding Activity", value: `${analytics.current.funding_activity}/20`, score: (analytics.current.funding_activity/20)*100, color: "bg-primary", text: "text-primary" },
+                  { label: "Sentiment Score", value: `${analytics.current.sentiment}/15`, score: (analytics.current.sentiment/15)*100, color: "bg-status-elevated", text: "text-status-elevated" },
+                  { label: "Executive Events", value: `${analytics.current.executive_events}/8`, score: (analytics.current.executive_events/8)*100, color: "bg-status-error", text: "text-status-error" },
+                  { label: "Report Activity", value: `${analytics.current.report_activity}/5`, score: (analytics.current.report_activity/5)*100, color: "bg-primary", text: "text-primary" }
+                ] : [
+                  { label: "Data Pending", value: "-", score: 0, color: "bg-surface-bright", text: "text-on-surface-variant" }
+                ]).map((metric, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-on-surface-variant font-medium">{metric.label}</span>
+                      <span className={`${metric.text} font-mono text-xs`}>{metric.value}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-surface-bright/20 rounded-full overflow-hidden">
+                      <div className={`h-full ${metric.color}`} style={{ width: `${metric.score}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="intelligence-card p-5">
+              <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Activity className="w-4 h-4" /> Activity Trend (30d)
+              </h3>
+              <div className="flex items-end gap-[2px] h-16 w-full mt-2">
+                {(() => {
+                  const activityTrend = analytics?.history?.slice(0, 30).reverse().map(h => h.payload_json.total) || [];
+                  const maxTrend = activityTrend.length > 0 ? Math.max(100, ...activityTrend) : 100;
+                  const trendBars = activityTrend.length > 0 ? activityTrend : Array(20).fill(0);
+                  
+                  return trendBars.map((val, i) => (
+                    <div 
+                      key={i} 
+                      className="flex-1 bg-primary/40 hover:bg-primary transition-colors rounded-t-sm" 
+                      style={{ height: `${(val / maxTrend) * 100}%` }} 
+                      title={`Score: ${val}`}
+                    />
+                  ));
+                })()}
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+}
