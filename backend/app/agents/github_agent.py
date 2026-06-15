@@ -18,4 +18,8 @@ GITHUB_API = "https://api.github.com"
 HEADERS = {"Accept": "application/vnd.github.v3+json"}
 
 class GitHubAgent:
+    """Derives engineering velocity signals from GitHub."""
+
+    def collect(self, github_org: str, company_name: str, company_id: str) -> list[dict]:
+        """Fetch metrics and compute velocity signals."""
     pass
