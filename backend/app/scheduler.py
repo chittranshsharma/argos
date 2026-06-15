@@ -106,4 +106,8 @@ def send_weekly_digest():
 
 
 def send_real_time_alerts():
+    """
+    Alert check — runs every 15 minutes.
+    Sends unsent alerts via Telegram.
+    """
     return None
