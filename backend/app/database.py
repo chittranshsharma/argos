@@ -120,4 +120,27 @@ def save_signal(signal_data: dict) -> dict:
 
 
 def get_signals(company_id: str, limit: int = 50, source: str = None) -> list:
-    pass
+    """Get signals for a company, optionally filtered by source."""
+    try:
+        client = get_supabase_client()
+        query = (
+            client.table("signals")
+            .select("*")
+            .eq("company_id", company_id)
+            .order("collected_at", desc=True)
+            .limit(limit)
+        )
+        if source and source != "all":
+            query = query.eq("source", source)
+        response = query.execute()
+        signals = response.data or []
+        for s in signals:
+            raw = s.get("raw_data", {})
+            for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+                if key in raw:
+                    s[key] = raw[key]
+        return signals
+    except Exception as e:
+        logger.error(f"Error getting signals: {e}")
+        return []
+
