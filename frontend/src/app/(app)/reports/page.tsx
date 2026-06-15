@@ -127,3 +127,63 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={handleClearAll}
+            disabled={isClearing || reports.length === 0}
+            suppressHydrationWarning
+            className={`flex items-center gap-2 font-bold px-4 py-2 rounded-lg transition-colors ${
+              isClearing || reports.length === 0 
+                ? 'bg-status-danger/20 text-status-danger/50 cursor-not-allowed' 
+                : 'bg-status-danger/20 text-status-danger hover:bg-status-danger/30 border border-status-danger/50'
+            }`}
+            title="Delete all reports"
+          >
+            <Trash2 className="w-4 h-4" />
+            {isClearing ? "Clearing..." : "Clear All"}
+          </button>
+          
+          <div className="flex items-center gap-2 bg-surface-low border border-surface-bright/30 p-1 rounded-xl">
+            <select 
+              value={targetCompanyId}
+              onChange={(e) => setTargetCompanyId(e.target.value)}
+              className="bg-transparent border-none text-sm text-on-surface px-3 py-1 focus:outline-none focus:ring-0 w-36 truncate"
+            >
+              <option value="" disabled>Select target...</option>
+              {companies.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button 
+              onClick={handleGenerate}
+              disabled={!targetCompanyId || isGenerating}
+              suppressHydrationWarning
+              className={`flex items-center gap-2 font-bold px-4 py-2 rounded-lg transition-colors ${
+                !targetCompanyId || isGenerating 
+                  ? 'bg-primary/50 text-black/50 cursor-not-allowed' 
+                  : 'bg-primary text-black hover:bg-primary-hover'
+              }`}
+              title={!targetCompanyId ? "Select a company first" : "Generate new report"}
+            >
+              <FileText className="w-4 h-4" />
+              {isGenerating ? "Generating..." : "Generate New"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 flex gap-6 overflow-hidden">
+        {/* Report List */}
+        <div className="w-1/3 shrink-0 flex flex-col gap-3 overflow-y-auto pr-2">
+          {loading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="skeleton h-24 w-full" />
+            ))
+          ) : reports.length > 0 ? (
+            reports.map((report) => (
+              <button
+                key={report.id}
+                onClick={() => setSelectedReport(report)}
+                className={`text-left p-4 rounded-xl border transition-all ${
+                  selectedReport?.id === report.id
+                    ? "bg-primary/10 border-primary"
+                    : "bg-surface-low border-surface-bright/20 hover:border-primary/50"
