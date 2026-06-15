@@ -410,4 +410,17 @@ def get_signals_today_count() -> int:
 
 
 def get_high_priority_alert_count() -> int:
-    return None
+    """Count unsent high-priority alerts."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("alerts")
+            .select("id", count="exact")
+            .eq("is_sent", False)
+            .execute()
+        )
+        return response.count or 0
+    except Exception as e:
+        logger.error(f"Error counting high priority alerts: {e}")
+        return 0
+
