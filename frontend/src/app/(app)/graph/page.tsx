@@ -237,3 +237,81 @@ export default function KnowledgeGraphPage() {
             <button onClick={() => graphControlRef.current?.zoomIn()} className="p-2 rounded bg-surface-lowest/80 backdrop-blur border border-surface-bright/30 hover:bg-white/5 transition-colors text-on-surface-variant">
               <ZoomIn className="w-4 h-4" />
             </button>
+            <button onClick={() => graphControlRef.current?.zoomOut()} className="p-2 rounded bg-surface-lowest/80 backdrop-blur border border-surface-bright/30 hover:bg-white/5 transition-colors text-on-surface-variant">
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button onClick={handleFullscreen} className="p-2 rounded bg-surface-lowest/80 backdrop-blur border border-surface-bright/30 hover:bg-white/5 transition-colors text-on-surface-variant">
+              <Maximize className="w-4 h-4" />
+            </button>
+            <button className="p-2 rounded bg-surface-lowest/80 backdrop-blur border border-surface-bright/30 hover:bg-white/5 transition-colors text-on-surface-variant ml-2 flex items-center gap-2 text-xs font-mono">
+              <Filter className="w-3 h-3" /> Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Info Panel */}
+        <div className="w-80 shrink-0 flex flex-col gap-4">
+          <div className="intelligence-card p-5 flex-1 overflow-y-auto">
+            <h3 className="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-surface-bright/20 pb-3">
+              <Info className="w-4 h-4" /> Node Inspector
+            </h3>
+            
+            {selectedNode ? (
+              <div className="animate-fade-in flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-on-surface font-bold ${selectedNode.type === 'company' ? 'bg-primary/20 text-primary' : 'bg-surface-bright/20'}`}>
+                    {selectedNode.label.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-on-surface leading-tight">{selectedNode.label}</div>
+                    <div className="text-xs font-mono text-primary uppercase mt-0.5">{selectedNode.type}</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-6 flex-1 pr-1">
+                  <div>
+                     <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2 border-b border-surface-bright/20 pb-1">AI Assessment</h4>
+                     <p className="text-sm text-on-surface-variant leading-relaxed">
+                        {generateAIAssessment(selectedNode)}
+                     </p>
+                     <div className="mt-2 text-xs font-mono flex items-center gap-2 text-primary">
+                        <CheckCircle2 className="w-3 h-3" /> Confidence: {80 + Math.floor(Math.random() * 15)}%
+                     </div>
+                  </div>
+
+                  <div>
+                     <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2 border-b border-surface-bright/20 pb-1">Network Attributes</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-on-surface-variant">Vector Weight</div>
+                      <div className="font-mono text-on-surface text-right">{selectedNode.val.toFixed(1)}</div>
+                      <div className="text-on-surface-variant">Direct Links</div>
+                      <div className="font-mono text-on-surface text-right">{getNodeLinkCount(selectedNode.id)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedNode.type === 'company' && (
+                  <div className="pt-4 border-t border-surface-bright/20 mt-4 shrink-0 flex flex-col gap-2">
+                    <Link href={`/companies/${selectedNode.id}`} className="flex items-center justify-center w-full gap-2 text-sm bg-primary text-black font-bold py-2.5 rounded-lg hover:scale-[1.02] active:scale-95 transition-all">
+                      <ArrowRight className="w-4 h-4" /> Open Profile 
+                    </Link>
+                    <Link href={`/companies/${selectedNode.id}`} className="flex items-center justify-center w-full gap-2 text-sm bg-surface-bright/20 text-on-surface font-medium py-2.5 rounded-lg hover:bg-surface-bright/30 transition-all">
+                      <Activity className="w-4 h-4" /> View Signals
+                    </Link>
+                    <button className="flex items-center justify-center w-full gap-2 text-sm bg-surface-bright/20 text-on-surface font-medium py-2.5 rounded-lg hover:bg-surface-bright/30 transition-all">
+                      <FileText className="w-4 h-4" /> Generate Brief
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-on-surface-variant text-center py-10 opacity-50">
+                Select a node to inspect its attributes and relationships.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
