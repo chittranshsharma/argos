@@ -14,3 +14,6 @@ logger = logging.getLogger(__name__)
 
 PH_API_URL = "https://api.producthunt.com/v2/api/graphql"
 
+
+class ProductHuntAgent:
+    pass
