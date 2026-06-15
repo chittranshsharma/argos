@@ -18,4 +18,8 @@ from app.pipeline.nodes import (
 
 
 def build_monitoring_graph() -> StateGraph:
+    """
+    Build the LangGraph monitoring pipeline:
+    collect → filter → analyze → store_graph → report → alerts
+    """
     return None
