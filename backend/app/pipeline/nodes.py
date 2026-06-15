@@ -129,4 +129,110 @@ def collect_signals_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def filter_new_signals_node(state: dict) -> dict:
-    return {}
+    """Compare raw_signals against existing signals and deduplicate."""
+    company_id = state["company_id"]
+    raw_signals = state.get("raw_signals", [])
+
+    if not raw_signals:
+        return {"new_signals": []}
+
+    # Get existing signal URLs for dedup
+    existing_urls = get_existing_signal_urls(company_id)
+
+    from app.pipeline.validator import SignalValidator
+    from app.scoring.signal_scorer import SignalScorer
+    from app.database import save_source, save_signal
+    
+    validator = SignalValidator()
+    scorer = SignalScorer()
+
+    new_signals = []
+    seen_urls = set()
+
+    for signal in raw_signals:
+        url = signal.get("url", "")
+        if url and (url in existing_urls or url in seen_urls):
+            continue
+            
+        agent_name = signal.get("agent", "UnknownAgent")
+        
+        # 1. Validate against Schema
+        validated_signal = validator.validate_and_format(signal, agent_name)
+        if not validated_signal:
+            continue
+            
+        validated_dict = validated_signal.model_dump()
+        
+        # 2. Score (Confidence/Importance)
+        scored_dict = scorer.score_signal(validated_dict)
+        
+        # 3. Source extraction and Persistence
+        raw_text = scored_dict.pop("raw_source_text", None)
+        if raw_text and url:
+            source_id = save_source({
+                "url": url,
+                "title": scored_dict.get("title", ""),
+                "raw_text": raw_text
+            })
+            if source_id:
+                scored_dict["source_id"] = source_id
+
+        # 4. Save Signal to DB
+        # Only keep fields matching the signals table schema
+        db_signal = {
+            "company_id": scored_dict["company_id"],
+            "company_name": scored_dict["company_name"],
+            "entity_type": "COMPANY",
+            "signal_type": scored_dict["signal_type"].value if hasattr(scored_dict["signal_type"], "value") else scored_dict["signal_type"],
+            "subtype": scored_dict["subtype"].value if hasattr(scored_dict["subtype"], "value") else scored_dict["subtype"],
+            "title": scored_dict["title"],
+            "content": scored_dict["content"],
+            "url": scored_dict["url"],
+            "confidence": scored_dict.get("confidence", 80),
+            "importance": scored_dict.get("importance", 5.0),
+            "source_id": scored_dict.get("source_id"),
+            "agent": scored_dict.get("agent"),
+            "extraction_model": scored_dict.get("extraction_model"),
+            "payload": scored_dict.get("payload", {}),
+            "status": "ACTIVE",
+            "is_new": True,
+            "occurred_at": scored_dict.get("occurred_at")
+        }
+        
+        try:
+            saved = save_signal(db_signal)
+            if saved:
+                db_signal["id"] = saved.get("id")
+                
+            # Automatically create an Alert for High Importance signals
+            if db_signal["importance"] >= 8.0:
+                from app.database import save_alert
+                alert_data = {
+                    "company_id": db_signal["company_id"],
+                    "company_name": db_signal["company_name"],
+                    "alert_type": str(db_signal["subtype"]) if db_signal["subtype"] else str(db_signal["signal_type"]),
+                    "message": f"🚨 High Priority Event ({db_signal['subtype']}): {db_signal['title']}",
+                    "sent_via": [],
+                    "is_sent": False,
+                    "confidence_score": db_signal["confidence"],
+                    "impact_level": "Critical" if db_signal["importance"] >= 9.0 else "High"
+                }
+                save_alert(alert_data)
+                
+        except Exception as e:
+            logger.error(f"Error saving signal/alert: {e}")
+            continue
+            
+        new_signals.append(db_signal)
+        if url:
+            seen_urls.add(url)
+
+    logger.info(f"Filtered to {len(new_signals)} new signals "
+                f"(from {len(raw_signals)} raw)")
+
+    return {"new_signals": new_signals}
+
+
+# ═══════════════════════════════════════════════════════════
+# Node 3: Analyze signals with Groq LLM
+# ═══════════════════════════════════════════════════════════
