@@ -11,3 +11,6 @@ from app.config import NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE
 
 logger = logging.getLogger(__name__)
 
+
+class GraphDB:
+    pass
