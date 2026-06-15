@@ -16,4 +16,8 @@ PH_API_URL = "https://api.producthunt.com/v2/api/graphql"
 
 
 class ProductHuntAgent:
+    """Collects signals from ProductHunt product launches."""
+
+    def collect(self, slug: str, company_name: str, company_id: str) -> list[dict]:
+        """
     pass
