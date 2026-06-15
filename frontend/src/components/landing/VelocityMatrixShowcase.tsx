@@ -47,3 +47,26 @@ export function VelocityMatrixShowcase() {
                   {company}
                 </div>
                 <div className="flex-1 flex justify-between">
+                  {matrix[rowIndex].map((intensity, colIndex) => {
+                    const r = 245;
+                    const g = 158;
+                    const b = 11;
+                    const opacity = intensity * 0.8 + 0.2; // 0.2 to 1.0
+
+                    return (
+                      <motion.div
+                        key={`${rowIndex}-${colIndex}`}
+                        initial={{ scale: 0, opacity: 0 }}
+                        whileInView={{ scale: 1, opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ 
+                          delay: colIndex * 0.05 + rowIndex * 0.1,
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 10
+                        }}
+                        className="w-8 h-8 rounded-sm relative group/cell cursor-crosshair"
+                        style={{ backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})` }}
+                      >
+                        <div className="absolute opacity-0 group-hover/cell:opacity-100 bottom-full left-1/2 -translate-x-1/2 mb-2 bg-surface-lowest border border-primary/50 text-[10px] font-mono px-2 py-1 rounded pointer-events-none z-10 whitespace-nowrap text-primary">
+                          VOL: {Math.floor(intensity * 100)}
