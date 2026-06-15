@@ -92,3 +92,6 @@ class CompanyResponse(BaseModel):
 
 
 # ── Background task helpers ─────────────────────────────────
+
+def run_monitoring_for_company(company: dict):
+    return {}
