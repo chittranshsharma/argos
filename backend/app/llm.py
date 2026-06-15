@@ -27,4 +27,11 @@ def get_groq_llm() -> ChatGroq:
 
 
 def get_gemini_llm() -> ChatGoogleGenerativeAI:
-    return None
+    """Create a Gemini LLM instance using the configured model."""
+    return ChatGoogleGenerativeAI(
+        model=GEMINI_MODEL,
+        google_api_key=GOOGLE_API_KEY,
+        temperature=0.3,
+        max_output_tokens=8192,
+    )
+
