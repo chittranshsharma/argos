@@ -35,3 +35,6 @@ def get_gemini_llm() -> ChatGoogleGenerativeAI:
         max_output_tokens=8192,
     )
 
+
+def llm_invoke(llm, prompt: str) -> str:
+    return ""
