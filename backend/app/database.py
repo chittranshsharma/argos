@@ -14,3 +14,6 @@ logger = logging.getLogger(__name__)
 
 # ── Supabase Client Singleton ───────────────────────────────
 _supabase_client: Client | None = None
+
+def get_supabase_client() -> Client:
+    return None
