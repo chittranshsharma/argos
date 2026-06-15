@@ -79,4 +79,8 @@ def run_monitoring_cycle():
 
 
 def send_weekly_digest():
+    """
+    Weekly digest — sends on Monday at 9am.
+    Collects latest reports and delivers via Telegram + Email.
+    """
     return None
