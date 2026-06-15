@@ -74,3 +74,30 @@ export function LiveMarketIntercepts() {
                 <motion.div
                   key={sig.id}
                   initial={{ opacity: 0, y: -20, backgroundColor: "rgba(245, 158, 11, 0.2)" }}
+                  animate={{ opacity: 1, y: 0, backgroundColor: "rgba(245, 158, 11, 0)" }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="mb-4 p-3 border-l-2 border-primary/50 bg-surface-lowest/50"
+                >
+                  <div className="flex justify-between items-center mb-1 text-xs text-on-surface-variant">
+                    <span>[{sig.time}]</span>
+                    <span className="flex items-center gap-3">
+                      <span>CONF: {sig.confidence}%</span>
+                      <span className={`px-1.5 rounded ${sig.impact === 'CRITICAL' ? 'bg-status-critical/20 text-status-critical' : 'bg-status-elevated/20 text-status-elevated'}`}>
+                        {sig.impact}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-primary font-bold mb-1 tracking-wider">{sig.type}</div>
+                  <div className="text-on-surface">
+                    <span className="font-bold">{sig.company}</span> - {sig.description}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
