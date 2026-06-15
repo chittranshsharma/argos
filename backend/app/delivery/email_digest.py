@@ -12,3 +12,6 @@ from app.config import GMAIL_USER, GMAIL_APP_PASSWORD
 
 logger = logging.getLogger(__name__)
 
+
+class EmailDelivery:
+    pass
