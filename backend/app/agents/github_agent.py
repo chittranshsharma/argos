@@ -16,3 +16,6 @@ logger = logging.getLogger(__name__)
 
 GITHUB_API = "https://api.github.com"
 HEADERS = {"Accept": "application/vnd.github.v3+json"}
+
+class GitHubAgent:
+    pass
