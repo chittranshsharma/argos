@@ -14,4 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class AutoDiscoverer:
+    """LLM-powered company source discovery."""
+
+    def discover(self, company_name: str, website: str = None) -> dict:
+        """
     pass
