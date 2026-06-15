@@ -10,3 +10,9 @@ langchain-groq
 langchain-community
 praw
 feedparser
+playwright
+beautifulsoup4
+requests
+apscheduler
+tenacity
+pydantic
