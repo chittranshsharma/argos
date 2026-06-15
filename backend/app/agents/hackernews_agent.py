@@ -14,4 +14,8 @@ HN_ALGOLIA_API = "https://hn.algolia.com/api/v1"
 
 
 class HackerNewsAgent:
+    """Collects signals from Hacker News via Algolia search API."""
+
+    def collect(self, company_name: str, company_id: str) -> list[dict]:
+        """
     pass
