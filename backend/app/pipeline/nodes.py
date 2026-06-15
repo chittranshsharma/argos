@@ -236,3 +236,6 @@ def filter_new_signals_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 # Node 3: Analyze signals with Groq LLM
 # ═══════════════════════════════════════════════════════════
+
+def analyze_signals_node(state: dict) -> dict:
+    return {}
