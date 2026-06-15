@@ -77,3 +77,29 @@ export default function CompanyCard({ company, signalCount }: CompanyCardProps) 
           <div className="rounded-xl bg-argos-surface-2/60 p-2.5 text-center border border-argos-border/50">
             <div className="text-lg font-bold text-argos-accent">{sources}</div>
             <div className="text-[10px] text-argos-text-dim uppercase tracking-wider">Sources</div>
+          </div>
+          <div className="rounded-xl bg-argos-surface-2/60 p-2.5 text-center border border-argos-border/50">
+            <div className="text-lg font-bold text-argos-success">
+              {signalCount ?? "—"}
+            </div>
+            <div className="text-[10px] text-argos-text-dim uppercase tracking-wider">Signals</div>
+          </div>
+          <div className="rounded-xl bg-argos-surface-2/60 p-2.5 text-center border border-argos-border/50">
+            <div className="text-lg font-bold text-argos-text">
+              {sources > 0 ? "8" : "0"}
+            </div>
+            <div className="text-[10px] text-argos-text-dim uppercase tracking-wider">Agents</div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between text-xs text-argos-text-dim">
+          <span>Last monitored: {timeAgo(company.last_monitored)}</span>
+          <span className="text-argos-accent group-hover:translate-x-1 transition-transform duration-200">
+            View →
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
