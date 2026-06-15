@@ -74,3 +74,6 @@ class AddCompanyRequest(BaseModel):
     name: str
     website: Optional[str] = None
 
+
+class CompanyResponse(BaseModel):
+    pass
