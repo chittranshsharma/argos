@@ -17,4 +17,8 @@ from app.llm import get_groq_llm, llm_invoke
 logger = logging.getLogger(__name__)
 
 class LaunchAgent:
+    """Collects and classifies product launch signals."""
+
+    def collect(self, company_name: str, company_id: str, producthunt_slug: str = None) -> list[dict]:
+        """Fetch and extract product launches."""
     pass
