@@ -101,3 +101,35 @@ export default function LoginPage() {
             {error && (
               <div className="text-sm text-status-danger bg-status-danger/10 p-3 rounded border border-status-danger/20">
                 {error}
+              </div>
+            )}
+            {successMsg && (
+              <div className="text-sm text-status-success bg-status-success/10 p-3 rounded border border-status-success/20">
+                {successMsg}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="flex items-center justify-center w-full bg-primary text-black font-bold text-sm px-4 py-3 rounded-lg hover:bg-primary-hover transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? "Create Account" : "Initialize Session")}
+            </button>
+            
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-xs text-on-surface-variant hover:text-primary transition-colors"
+              >
+                {isSignUp ? "Already have an account? Sign in." : "Don't have an account? Sign up."}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+    </div>
+  );
+}
