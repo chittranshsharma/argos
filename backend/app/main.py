@@ -94,4 +94,40 @@ class CompanyResponse(BaseModel):
 # ── Background task helpers ─────────────────────────────────
 
 def run_monitoring_for_company(company: dict):
+    """Run the full monitoring pipeline for a single company."""
+    try:
+        from app.pipeline.graph import monitoring_graph
+
+        initial_state = {
+            "company_id": company["id"],
+            "company_name": company["name"],
+            "company_data": company,
+            "raw_signals": [],
+            "new_signals": [],
+            "analysis": {},
+            "key_findings": [],
+            "hiring_trends": [],
+            "tech_signals": [],
+            "report": "",
+            "alerts": [],
+            "entities": [],
+            "relationships": [],
+        }
+
+        result = monitoring_graph.invoke(initial_state)
+        signal_count = len(result.get("new_signals", []))
+        logger.info(f"Monitoring complete for {company['name']}: {signal_count} new signals")
+
+    except Exception as e:
+        logger.error(f"Background monitoring failed for {company['name']}: {e}")
+
+
+# ═══════════════════════════════════════════════════════════
+# ENDPOINTS
+# ═══════════════════════════════════════════════════════════
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
     return {}
