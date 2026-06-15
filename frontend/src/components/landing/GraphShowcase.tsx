@@ -84,3 +84,44 @@ export function GraphShowcase() {
       ctx.lineWidth = 2 / globalScale;
       ctx.stroke();
     }
+
+    // Node label
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(231, 224, 216, 0.9)'; // on-surface
+    ctx.fillText(label, node.x, node.y + node.val * 0.4 + fontSize + 2);
+  }, [selectedNode]);
+
+  return (
+    <div className="w-full relative py-24 bg-surface-lowest">
+      
+      <div className="max-w-7xl mx-auto px-6 mb-12 relative z-20">
+        <h2 className="text-3xl font-bold tracking-tighter uppercase mb-4">Global Knowledge Graph</h2>
+        <p className="text-on-surface-variant font-mono text-sm max-w-2xl">
+          Entity resolution maps hidden relationships between companies, executives, and capital.
+          <br/>
+          <span className="text-primary opacity-80 text-xs mt-2 inline-block">Interactive: Click nodes to inspect.</span>
+        </p>
+      </div>
+
+      <div className="relative w-full h-[600px] border-y border-surface-bright/30 bg-surface-low overflow-hidden" ref={containerRef}>
+        {/* Render the graph only on the client */}
+        {isClient && (
+          <div className="absolute inset-0 opacity-80 cursor-crosshair">
+            <ForceGraph2D
+              width={dimensions.width}
+              height={dimensions.height}
+              graphData={mockGraphData}
+              nodeLabel={() => ""} // Disable default label, we draw it
+              nodeCanvasObject={drawNode}
+              onNodeClick={(node) => setSelectedNode(node)}
+              linkColor={() => "rgba(168, 162, 158, 0.2)"}
+              linkWidth={1.5}
+              backgroundColor="transparent"
+              d3AlphaDecay={0.02}
+              d3VelocityDecay={0.3}
+              enableZoomInteraction={false}
+              enablePanInteraction={false}
+            />
+          </div>
+        )}
