@@ -29,3 +29,6 @@ class RawAgentSignal(BaseModel):
     # Time
     occurred_at: Optional[str] = None
     expires_at: Optional[str] = None
+
+class SignalValidator:
+    pass
