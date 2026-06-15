@@ -17,3 +17,19 @@ export function ExecutiveMovements({ companyId }: { companyId: string }) {
   }, [companyId])
 
   if (loading) return (
+    <div className="space-y-2">
+      {[1,2].map(i => (
+        <div key={i} className="h-14 bg-argos-surface-2 rounded animate-pulse" />
+      ))}
+    </div>
+  )
+
+  if (movements.length === 0) return (
+    <p className="text-argos-text-dim text-sm">
+      No executive movements detected
+    </p>
+  )
+
+  const getMovementColor = (title: string) => {
+    if (title.includes('left')) return '#ef4444'
+    if (title.includes('joined')) return '#22c55e'
