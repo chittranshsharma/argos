@@ -83,3 +83,30 @@ export function SideNavBar() {
           <div className="px-3 pb-2 font-mono text-xs text-on-surface-variant uppercase tracking-widest">
             Analysis
           </div>
+          {ANALYSIS_ITEMS.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const Icon = item.icon;
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  isActive 
+                    ? "bg-primary/10 text-primary border-l-2 border-primary rounded-l-none" 
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-white/5"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+
+      </div>
+    </aside>
+  );
+}
