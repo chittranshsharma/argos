@@ -31,4 +31,8 @@ class RawAgentSignal(BaseModel):
     expires_at: Optional[str] = None
 
 class SignalValidator:
+    """Validates raw agent signals against the unified schema."""
+    
+    def validate_and_format(self, raw_data: dict, agent_name: str) -> Optional[RawAgentSignal]:
+        """Validates a dictionary output from an agent and ensures it matches the schema."""
     pass
