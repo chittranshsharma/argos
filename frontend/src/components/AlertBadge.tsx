@@ -16,3 +16,18 @@ const STYLES: Record<Importance, { bg: string; dot: string; text: string }> = {
     dot: "bg-argos-danger",
     text: "text-argos-danger",
   },
+  medium: {
+    bg: "bg-argos-warning/10 border-argos-warning/30",
+    dot: "bg-argos-warning",
+    text: "text-argos-warning",
+  },
+  low: {
+    bg: "bg-argos-surface-3 border-argos-border",
+    dot: "bg-argos-text-dim",
+    text: "text-argos-text-dim",
+  },
+};
+
+const SIZE_STYLES: Record<string, string> = {
+  sm: "px-1.5 py-0.5 text-[10px]",
+  md: "px-2 py-1 text-xs",
