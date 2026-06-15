@@ -83,4 +83,24 @@ def send_weekly_digest():
     Weekly digest — sends on Monday at 9am.
     Collects latest reports and delivers via Telegram + Email.
     """
-    return None
+    logger.info("Generating weekly digest...")
+
+    try:
+        reports = get_latest_reports()
+        if not reports:
+            logger.info("No reports available for digest")
+            return
+
+        # Send via Telegram
+        telegram = TelegramDelivery()
+        telegram.send_digest(reports)
+
+        # Send via Email
+        email = EmailDelivery()
+        email.send_weekly_digest(reports)
+
+        logger.info(f"Weekly digest sent with {len(reports)} company reports")
+
+    except Exception as e:
+        logger.error(f"Weekly digest failed: {e}")
+
