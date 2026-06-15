@@ -69,3 +69,6 @@ app.add_middleware(
 
 
 # ── Request/Response Models ─────────────────────────────────
+
+class AddCompanyRequest(BaseModel):
+    pass
