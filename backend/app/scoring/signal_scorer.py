@@ -55,4 +55,30 @@ class SignalScorer:
 
     def score_signal(self, signal: dict) -> dict:
         """
-    pass
+        Assign importance (1-10) and confidence (1-100) based on subtype and payload.
+        Returns updated signal dict.
+        """
+        subtype = signal.get("subtype")
+        
+        # Default fallback
+        importance = 3.0
+        confidence = 80
+        
+        if subtype:
+            try:
+                enum_subtype = SignalSubtype(subtype)
+                importance = self.IMPORTANCE_WEIGHTS.get(enum_subtype, 3.0)
+            except ValueError:
+                pass
+                
+        # Adjust confidence based on extraction model
+        model = signal.get("extraction_model")
+        if model and "gpt-4" in model.lower():
+            confidence += 10
+        elif model and "groq" in model.lower():
+            confidence += 5
+            
+        signal["importance"] = min(10.0, importance)
+        signal["confidence"] = min(100, confidence)
+        
+        return signal
