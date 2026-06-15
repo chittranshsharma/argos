@@ -103,3 +103,54 @@ export default function GraphRenderer({ data, onNodeClick, controlRef }: GraphRe
         nodeLabel="label"
         nodeColor={(node: GraphNode) => {
           switch (node.type) {
+            case "company": return "#f59e0b"; // Primary Amber
+            case "competitor": return "#ef4444"; // Red
+            case "executive": return "#3b82f6"; // Blue
+            case "funding": return "#10b981"; // Emerald
+            case "launch": return "#8b5cf6"; // Violet
+            case "event": return "#f43f5e"; // Rose
+            case "concept": return "#a8a29e"; // Slate
+            default: return "#78716c";
+          }
+        }}
+        nodeRelSize={6}
+        linkColor={(link: GraphLink) => {
+          const alpha = link.strength === "strong" ? 0.9 : link.strength === "weak" ? 0.4 : 0.7;
+          switch (link.type) {
+            case "competition": return `rgba(239, 68, 68, ${alpha})`; // Red
+            case "partnership": return `rgba(245, 158, 11, ${alpha})`; // Amber
+            case "acquisition": return `rgba(16, 185, 129, ${alpha})`; // Emerald
+            case "hiring": return `rgba(59, 130, 246, ${alpha})`; // Blue
+            case "funding": return `rgba(16, 185, 129, ${alpha})`; // Emerald
+            case "launch": return `rgba(139, 92, 246, ${alpha})`; // Violet
+            default: return `rgba(168, 162, 158, ${alpha})`; // Gray
+          }
+        }}
+        linkWidth={(link: GraphLink) => {
+          let base = link.type === "competition" || link.type === "acquisition" ? 2 : 1;
+          if (link.strength === "strong") base += 1.5;
+          if (link.strength === "weak") base -= 0.5;
+          return base;
+        }}
+        linkDirectionalArrowLength={3.5}
+        linkDirectionalArrowRelPos={1}
+        onNodeClick={(node: unknown) => onNodeClick && onNodeClick(node as GraphNode)}
+        backgroundColor="#140d06" // surface-lowest
+        // Custom edge rendering for labels
+        linkCanvasObjectMode={() => "after"}
+        linkCanvasObject={(link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          if (!link.label) return;
+          const MAX_FONT_SIZE = 4;
+          const LABEL_NODE_MARGIN = 6 * 1.5;
+
+          const start = link.source;
+          const end = link.target;
+
+          // Ignore unbound links
+          if (typeof start !== 'object' || typeof end !== 'object') return;
+
+          // Calculate text position
+          const textPos = {
+            x: start.x + (end.x - start.x) / 2,
+            y: start.y + (end.y - start.y) / 2
+          };
