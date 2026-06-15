@@ -101,3 +101,38 @@ export default function IntelligencePage() {
                   <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-4">Chronological Stream</h2>
                 )}
                 {regularSignals.length > 0 ? (
+                  <SignalFeed signals={regularSignals} showCompany={true} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant glass-panel rounded-2xl">
+                    <Activity className="w-12 h-12 mb-4 opacity-20" />
+                    <p>No regular signals match the current filters.</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="hidden lg:block space-y-6">
+          <div className="intelligence-card p-5">
+            <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4">Stream Stats</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="text-xs text-on-surface-variant mb-1">Total Signals (24h)</div>
+                <div className="text-2xl font-bold text-on-surface">{signals.length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-on-surface-variant mb-1">Critical Anomalies</div>
+                <div className="text-2xl font-bold text-status-critical">{signals.filter(s => s.importance === "high" && (s.score || 0) > 0.85).length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-on-surface-variant mb-1">Active Companies</div>
+                <div className="text-2xl font-bold text-primary">{companies.length}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
