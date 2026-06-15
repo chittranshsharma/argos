@@ -156,3 +156,55 @@ export default function AddCompanyModal({
               </h2>
               <p className="text-sm text-argos-text-dim mt-1">
                 {name} has been added and monitoring has started
+              </p>
+            </div>
+
+            <div className="space-y-2 mb-6">
+              {SOURCE_LABELS.map(({ key, label, icon }) => {
+                const value = discovered?.[key];
+                const isActive =
+                  value !== null &&
+                  value !== undefined &&
+                  value !== "" &&
+                  (Array.isArray(value) ? value.length > 0 : true);
+
+                return (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 border ${
+                      isActive
+                        ? "bg-argos-success/5 border-argos-success/20 text-argos-success"
+                        : "bg-argos-surface-2/50 border-argos-border/50 text-argos-text-dim"
+                    }`}
+                  >
+                    <span className="text-sm">{icon}</span>
+                    <span className="text-sm font-medium flex-1">{label}</span>
+                    <span className="text-xs">
+                      {isActive ? (
+                        <span className="flex items-center gap-1">
+                          <span>✓</span>
+                          <span className="text-argos-text-dim truncate max-w-[150px]">
+                            {Array.isArray(value) ? value.join(", ") : String(value)}
+                          </span>
+                        </span>
+                      ) : (
+                        "Not found"
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={handleClose}
+              className="w-full rounded-xl bg-argos-accent hover:bg-argos-accent-hover px-4 py-3 text-sm font-semibold text-white transition-all duration-200"
+            >
+              Done
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
