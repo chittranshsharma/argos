@@ -90,3 +90,47 @@ export function CinematicHero() {
                 y: `${Math.random() * 100}vh`,
                 opacity: 0,
                 scale: 0
+              }}
+              animate={{
+                opacity: [0, 1, 0],
+                scale: [0, 1.5, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                delay: i * 2,
+                repeatType: "loop",
+                ease: "circOut"
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Layer 2: Floating classified signals (faint text blocks in bg) */}
+      {mounted && (
+        <div className="absolute inset-0 z-0 overflow-hidden opacity-10 font-mono text-[8px] sm:text-xs text-primary/40 whitespace-pre">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <motion.div
+              key={`sig-${i}`}
+              className="absolute"
+              initial={{ x: `${Math.random() * 100}vw`, y: `${Math.random() * 100}vh` }}
+              animate={{ y: [`${Math.random() * 100}vh`, `${Math.random() * 100 - 20}vh`] }}
+              transition={{ duration: 15 + Math.random() * 10, repeat: Infinity, ease: "linear" }}
+            >
+              [SIG_INT] {Math.random().toString(36).substring(2, 10).toUpperCase()} - {Math.floor(Math.random() * 100)}% CONFIDENCE
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Content Container */}
+      <div className="relative z-20 w-full max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
+        
+        {/* Headline */}
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="text-6xl md:text-8xl font-bold tracking-tighter mb-8 uppercase"
+        >
