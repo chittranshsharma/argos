@@ -70,3 +70,27 @@ export function VelocityMatrixShowcase() {
                       >
                         <div className="absolute opacity-0 group-hover/cell:opacity-100 bottom-full left-1/2 -translate-x-1/2 mb-2 bg-surface-lowest border border-primary/50 text-[10px] font-mono px-2 py-1 rounded pointer-events-none z-10 whitespace-nowrap text-primary">
                           VOL: {Math.floor(intensity * 100)}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-end items-center gap-4 text-xs font-mono text-on-surface-variant">
+            <span>Low Velocity</span>
+            <div className="flex gap-1">
+              {[0.2, 0.4, 0.6, 0.8, 1.0].map(op => (
+                <div key={op} className="w-4 h-4 rounded-sm" style={{ backgroundColor: `rgba(245, 158, 11, ${op})` }}></div>
+              ))}
+            </div>
+            <span>High Velocity</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
