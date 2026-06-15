@@ -41,3 +41,23 @@ export default function SettingsPage() {
                 API OFFLINE
               </div>
             </div>
+
+            <p className="text-sm text-on-surface-variant mb-6 p-4 bg-surface-bright/10 rounded-lg border border-surface-bright/20">
+              Endpoint Missing: GET /api/v1/system/sources<br/>
+              The backend configuration endpoints are not currently active. Below is a UI demonstration of the planned structure.
+            </p>
+
+            <div className="space-y-4">
+              {[
+                { name: "GitHub API", status: "Connected", sync: "10m ago", icon: HardDrive },
+                { name: "Reddit OAuth", status: "Connected", sync: "2m ago", icon: Link2 },
+                { name: "LinkedIn Scraper", status: "Degraded", sync: "1h ago", icon: Database },
+                { name: "HackerNews Firehose", status: "Connected", sync: "Just now", icon: HardDrive },
+              ].map((source, i) => {
+                const Icon = source.icon;
+                const isDegraded = source.status === "Degraded";
+                return (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-surface-lowest border border-surface-bright/30">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-lg ${isDegraded ? 'bg-status-elevated/10 text-status-elevated' : 'bg-status-success/10 text-status-success'}`}>
+                        <Icon className="w-5 h-5" />
