@@ -15,3 +15,6 @@ from app.config import GROQ_API_KEY, GROQ_MODEL, GOOGLE_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
+
+def get_groq_llm() -> ChatGroq:
+    return None
