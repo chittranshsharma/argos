@@ -95,4 +95,26 @@ def save_source(source_data: dict) -> str:
     return None
 
 def save_signal(signal_data: dict) -> dict:
-    return {}
+    """Insert a new signal record. Packs new columns into raw_data to bypass schema cache issues."""
+    try:
+        client = get_supabase_client()
+        
+        # Move new columns to raw_data to bypass migration requirement
+        db_signal = signal_data.copy()
+        raw_data = db_signal.get("raw_data", {})
+        
+        for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+            if key in db_signal:
+                raw_data[key] = db_signal.pop(key)
+                
+        if "source" not in db_signal or not db_signal["source"]:
+            db_signal["source"] = raw_data.get("agent", "unknown").replace("Agent", "").lower()
+            
+        db_signal["raw_data"] = raw_data
+        
+        response = client.table("signals").insert(db_signal).execute()
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error saving signal: {e}")
+        return {}
+
