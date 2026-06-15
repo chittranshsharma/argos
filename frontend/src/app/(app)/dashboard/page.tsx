@@ -61,3 +61,59 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
+      try {
+        const [statsData, signalsData, trendingData, anomaliesData] = await Promise.all([
+          getStats(),
+          getSignalFeed({ limit: 20 }),
+          getShareOfVoice(7), // past week
+          getGlobalAnomalies(7) // past week
+        ]);
+        setStats(statsData);
+        setSignals(signalsData);
+        setTrending(trendingData.slice(0, 5));
+        setAnomalies(anomaliesData.slice(0, 3));
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+        // Set defaults on error
+        setStats({
+          companies_tracked: 0,
+          signals_today: 0,
+          high_priority_alerts: 0,
+          reports_generated: 0,
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  return (
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-4xl font-bold tracking-tighter text-on-surface">
+          Command Center
+        </h1>
+        <p className="text-sm leading-relaxed text-on-surface-variant mt-1">
+          Real-time competitive intelligence across all tracked entities.
+        </p>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          <>
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="skeleton h-[100px]" />
+            ))}
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Entities Tracked"
+              value={stats?.companies_tracked ?? 3}
+              metaText="+1 this week"
+              metaColor="text-status-success"
+              icon={Globe}
+              color="text-primary"
