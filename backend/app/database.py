@@ -146,4 +146,19 @@ def get_signals(company_id: str, limit: int = 50, source: str = None) -> list:
 
 
 def get_new_signals(company_id: str) -> list:
-    return []
+    """Get only unseen signals for a company."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("signals")
+            .select("*")
+            .eq("company_id", company_id)
+            .eq("is_new", True)
+            .order("collected_at", desc=True)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting new signals: {e}")
+        return []
+
