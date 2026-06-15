@@ -46,3 +46,20 @@ export default function AlertBadge({
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border font-medium uppercase tracking-wider ${style.bg} ${style.text} ${sizeStyle}`}
     >
+      {importance === "high" && (
+        <span className="relative flex h-1.5 w-1.5">
+          <span
+            className={`animate-ping absolute inline-flex h-full w-full rounded-full ${style.dot} opacity-75`}
+          />
+          <span
+            className={`relative inline-flex h-1.5 w-1.5 rounded-full ${style.dot}`}
+          />
+        </span>
+      )}
+      {importance}
+      {count !== undefined && count > 0 && (
+        <span className="font-bold">{count}</span>
+      )}
+    </span>
+  );
+}
