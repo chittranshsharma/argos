@@ -37,3 +37,6 @@ def get_all_companies() -> list:
         logger.error(f"Error getting all companies: {e}")
         return []
 
+
+def get_company_by_id(company_id: str) -> dict:
+    return {}
