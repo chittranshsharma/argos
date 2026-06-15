@@ -223,4 +223,10 @@ def mark_signals_seen(company_id: str) -> None:
 # ── Reports ─────────────────────────────────────────────────
 
 def save_report(report_data: dict) -> None:
-    pass
+    """Insert a new report record."""
+    try:
+        client = get_supabase_client()
+        client.table("reports").insert(report_data).execute()
+    except Exception as e:
+        logger.error(f"Error saving report: {e}")
+
