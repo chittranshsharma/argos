@@ -408,3 +408,6 @@ def get_signals_today_count() -> int:
         logger.error(f"Error counting signals today: {e}")
         return 0
 
+
+def get_high_priority_alert_count() -> int:
+    return None
