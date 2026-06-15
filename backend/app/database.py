@@ -263,4 +263,15 @@ def get_all_reports(company_id: str = None) -> list:
 
 
 def get_latest_reports() -> list:
-    return []
+    """Get the latest report per company (for weekly digest)."""
+    try:
+        companies = get_all_companies()
+        latest = []
+        for c in companies:
+            reports = get_reports(c["id"])
+            if reports:
+                latest.append(reports[0])
+        return latest
+    except Exception as e:
+        logger.error(f"Failed to fetch reports for {company_id}: {e}")
+        return []
