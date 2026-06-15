@@ -10,3 +10,6 @@ EXECUTIVE_TITLES = [
     "director", "head of", "chief", "founder", "president",
     "managing director", "md", "svp", "evp", "partner"
 ]
+
+class ExecutiveTracker:
+    pass
