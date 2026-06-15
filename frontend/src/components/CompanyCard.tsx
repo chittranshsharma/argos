@@ -52,3 +52,28 @@ export default function CompanyCard({ company, signalCount }: CompanyCardProps) 
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-argos-accent/20 to-blue-600/10 border border-argos-accent/20 text-argos-accent font-bold text-lg group-hover:from-argos-accent/30 group-hover:to-blue-600/20 transition-all duration-300">
               {company.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-argos-text group-hover:text-argos-accent transition-colors">
+                {company.name}
+              </h3>
+              {company.website && (
+                <p className="text-xs text-argos-text-dim truncate max-w-[180px]">
+                  {company.website.replace(/^https?:\/\//, "")}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Active indicator */}
+          <span className="relative flex h-2.5 w-2.5 mt-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-argos-success opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-argos-success" />
+          </span>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="rounded-xl bg-argos-surface-2/60 p-2.5 text-center border border-argos-border/50">
+            <div className="text-lg font-bold text-argos-accent">{sources}</div>
+            <div className="text-[10px] text-argos-text-dim uppercase tracking-wider">Sources</div>
