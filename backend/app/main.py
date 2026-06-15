@@ -130,4 +130,737 @@ def run_monitoring_for_company(company: dict):
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {}
+    companies = get_all_companies()
+    signals_today = get_signals_today_count()
+    return {
+        "status": "ok",
+        "companies_tracked": len(companies),
+        "signals_today": signals_today,
+    }
+
+
+# ── Companies ───────────────────────────────────────────────
+
+@app.post("/companies")
+async def create_company(request: AddCompanyRequest, background_tasks: BackgroundTasks):
+    """
+    Add a new company to track.
+    Auto-discovers sources and triggers first monitoring run.
+    """
+    # Check for duplicates
+    from app.database import get_all_companies
+    existing_companies = get_all_companies()
+    for comp in existing_companies:
+        if comp["name"].lower() == request.name.lower():
+            raise HTTPException(status_code=400, detail="Company already exists")
+
+    # Discover sources
+    discoverer = AutoDiscoverer()
+    sources = discoverer.discover(request.name, request.website)
+
+    # Build company record
+    company_data = {
+        "name": request.name,
+        "website": request.website,
+        **sources,
+    }
+
+    # Save to Supabase
+    try:
+        company = add_company(company_data)
+    except Exception as e:
+        logger.error(f"Failed to save company: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save company: {str(e)}")
+
+    # Discover competitors in background
+    if company:
+        import threading
+        from app.database import get_supabase_client
+        from app.discovery.competitor_mapper import CompetitorMapper
+
+        def discover_and_store_competitors(company_id_str: str, c_name: str, c_web: str):
+            try:
+                mapper = CompetitorMapper()
+                competitors = mapper.discover_competitors(c_name, c_web)
+                mapper.store_competitor_relationships(c_name, company_id_str, competitors)
+                # Save competitors list to company record
+                client = get_supabase_client()
+                client.table("companies").update({
+                    "competitors": [c["name"] for c in competitors]
+                }).eq("id", company_id_str).execute()
+            except Exception as e:
+                logger.error(f"Background competitor discovery failed: {e}")
+
+        threading.Thread(
+            target=discover_and_store_competitors, 
+            args=(company["id"], request.name, request.website),
+            daemon=True
+        ).start()
+
+    # Trigger first monitoring run in background
+    if company:
+        background_tasks.add_task(run_monitoring_for_company, company)
+
+    return {
+        "company": company,
+        "discovered_sources": sources,
+    }
+
+
+@app.get("/companies")
+async def list_companies():
+    """Return all active companies."""
+    companies = get_all_companies()
+    return {"companies": companies}
+
+
+@app.get("/companies/{company_id}")
+async def get_company(company_id: str):
+    """Return company details with latest report, recent signals, and score breakdown."""
+    try:
+        from app.database import get_company_by_id, get_reports, get_signals, get_supabase_client
+        
+        company = get_company_by_id(company_id)
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+
+        reports = get_reports(company_id)
+        signals = get_signals(company_id, limit=20)
+
+        # Get knowledge graph data
+        graph_data = {"nodes": [], "links": []}
+        try:
+            from app.memory.graph_db import GraphDB
+            graph_db = GraphDB()
+            graph_data = graph_db.get_company_graph(company["name"])
+            graph_db.close()
+        except Exception:
+            pass
+
+        # Fetch Score Breakdown (Latest Snapshot)
+        score_breakdown = None
+        try:
+            client = get_supabase_client()
+            snap_res = client.table("analytics_snapshots")\
+                .select("payload_json")\
+                .eq("metric_type", f"intelligence_score:{company_id}")\
+                .order("timestamp", desc=True)\
+                .limit(1)\
+                .execute()
+            if snap_res.data:
+                score_breakdown = snap_res.data[0].get("payload_json")
+        except Exception as e:
+            logger.warning(f"Failed to fetch score breakdown for {company_id}: {e}")
+
+        return {
+            "company": company,
+            "latest_report": reports[0] if reports else None,
+            "recent_signals": signals,
+            "graph_data": graph_data,
+            "score_breakdown": score_breakdown
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching company {company_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/companies/{company_id}")
+async def delete_company(company_id: str):
+    """Soft-delete a company (set is_active=False)."""
+    try:
+        result = deactivate_company(company_id)
+        return {"message": "Company deactivated", "company": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/companies/{company_id}/competitors")
+async def get_competitors(company_id: str):
+    """Get competitor list for a company"""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        result = client.table("companies")\
+            .select("competitors, name")\
+            .eq("id", company_id)\
+            .single()\
+            .execute()
+        return {
+            "company_name": result.data["name"],
+            "competitors": result.data.get("competitors", []) or []
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/companies/{company_id}/anomalies")
+async def get_anomalies(company_id: str):
+    """Get signal anomalies for a company"""
+    try:
+        from app.scoring.signal_scorer import SignalScorer
+        from app.database import get_signal_baseline
+        scorer = SignalScorer()
+        sources = ["github", "jobs", "news", "reddit", 
+                   "hackernews", "linkedin", "changelog", 
+                   "producthunt"]
+        anomalies = []
+        for source in sources:
+            baseline = get_signal_baseline(company_id, source)
+            anomaly = scorer.detect_anomaly(
+                company_id, source, 
+                baseline.get("current_week_count", 0), 
+                baseline
+            )
+            if anomaly.get("is_anomaly"):
+                anomalies.append({
+                    "source": source,
+                    **anomaly
+                })
+        return {"anomalies": anomalies}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/companies/{company_id}/hiring-intent")
+async def get_hiring_intent(company_id: str):
+    """Analyze hiring patterns to infer strategic intent"""
+    try:
+        from app.analysis.hiring_analyzer import HiringAnalyzer
+        from app.database import get_company_by_id, get_job_signals
+        
+        company = get_company_by_id(company_id)
+        job_signals = get_job_signals(company_id)
+        
+        analyzer = HiringAnalyzer()
+        intent = analyzer.analyze_hiring_intent(
+            company["name"], job_signals
+        )
+        return intent
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/companies/{company_id}/executives")
+async def get_executive_movements_endpoint(company_id: str):
+    """Get detected executive movements for a company"""
+    try:
+        from app.database import get_executive_movements
+        movements = get_executive_movements(company_id)
+        return {"movements": movements, "count": len(movements)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/companies/{company_id}/sentiment")
+async def get_sentiment_timeline(
+    company_id: str, 
+    weeks: int = 12
+):
+    """Get weekly sentiment timeline for a company"""
+    try:
+        from app.analysis.sentiment_analyzer import SentimentAnalyzer
+        from app.database import get_supabase_client
+        from datetime import datetime, timedelta, timezone
+        
+        client = get_supabase_client()
+        since = (
+            datetime.now(timezone.utc) - timedelta(weeks=weeks)
+        ).isoformat()
+        
+        signals = client.table("signals")\
+            .select("*")\
+            .eq("company_id", company_id)\
+            .in_("source", ["reddit", "hackernews"])\
+            .gte("collected_at", since)\
+            .execute()
+        
+        analyzer = SentimentAnalyzer()
+        scored = analyzer.analyze_batch_sentiment(
+            signals.data or []
+        )
+        timeline = analyzer.get_weekly_sentiment(scored, weeks)
+        
+        return {
+            "timeline": timeline,
+            "total_signals": len(scored)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/companies/{company_id}/rules")
+async def get_alert_rules(company_id: str):
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        result = client.table("alert_rules")\
+            .select("*")\
+            .eq("company_id", company_id)\
+            .order("created_at", desc=True)\
+            .execute()
+        return {"rules": result.data or []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/companies/{company_id}/rules")
+async def create_alert_rule(company_id: str, request: dict):
+    """
+    Body: {
+      rule_name, keyword, source (optional), 
+      importance_threshold (optional)
+    }
+    """
+    try:
+        from app.database import get_supabase_client, get_company_by_id
+        company = get_company_by_id(company_id)
+        client = get_supabase_client()
+        result = client.table("alert_rules").insert({
+            "company_id": company_id,
+            "company_name": company["name"],
+            "rule_name": request.get("rule_name"),
+            "source": request.get("source", "any"),
+            "keyword": request.get("keyword"),
+            "importance_threshold": request.get(
+                "importance_threshold", "any"
+            ),
+            "is_active": True
+        }).execute()
+        return {"rule": result.data[0] if result.data else {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/companies/{company_id}/rules/{rule_id}")
+async def delete_alert_rule(company_id: str, rule_id: str):
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        client.table("alert_rules")\
+            .update({"is_active": False})\
+            .eq("id", rule_id)\
+            .execute()
+        return {"deleted": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ── Signals ─────────────────────────────────────────────────
+
+@app.get("/companies/{company_id}/signals")
+async def get_company_signals(company_id: str, limit: int = 50, source: str = "all"):
+    """Get signals for a specific company."""
+    signals = get_signals(company_id, limit=limit, source=source)
+    return {"signals": signals}
+
+
+@app.get("/signals/feed")
+async def get_signal_feed(
+    limit: int = 100,
+    source: str = None,
+    importance: str = None,
+    company_id: str = None,
+):
+    """Get latest signals across all companies with optional filters."""
+    signals = get_all_signals_feed(
+        limit=limit, source=source,
+        importance=importance, company_id=company_id
+    )
+    return {"signals": signals}
+
+
+# ── Reports ─────────────────────────────────────────────────
+
+@app.get("/companies/{company_id}/reports")
+async def get_company_reports(company_id: str):
+    """Get all reports for a company."""
+    reports = get_reports(company_id)
+    return {"reports": reports}
+
+
+@app.post("/companies/{company_id}/reports/generate")
+async def generate_company_report(company_id: str, background_tasks: BackgroundTasks):
+    """Trigger manual report generation for a company."""
+    from app.database import get_company_by_id
+    company = get_company_by_id(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    def run_report_generation():
+        from app.pipeline.nodes import generate_report_node
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        res = client.table('signals').select('*').eq('company_id', company_id).execute()
+        state = {
+            'company_id': company_id,
+            'company_name': company['name'],
+            'new_signals': res.data or [],
+            'key_findings': ['Manual generation triggered.'],
+            'hiring_trends': [],
+            'tech_signals': []
+        }
+        generate_report_node(state)
+
+    background_tasks.add_task(run_report_generation)
+    return {"status": "generating"}
+
+
+@app.get("/reports")
+async def list_all_reports(company_id: str = None):
+    """Get all reports, optionally filtered by company."""
+    reports = get_all_reports(company_id=company_id)
+    return {"reports": reports}
+
+@app.delete("/reports")
+async def clear_all_reports():
+    """Clear all reports."""
+    from app.database import get_supabase_client
+    client = get_supabase_client()
+    try:
+        # Delete all reports. Supabase requires a filter, using a dummy one.
+        client.table("reports").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
+        return {"deleted": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Manual Actions ──────────────────────────────────────────
+
+@app.post("/companies/{company_id}/monitor")
+async def trigger_monitoring(company_id: str, background_tasks: BackgroundTasks):
+    """Manually trigger monitoring for a single company."""
+    try:
+        company = get_company_by_id(company_id)
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+
+        background_tasks.add_task(run_monitoring_for_company, company)
+        return {"message": f"Monitoring started for {company['name']}", "status": "running"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Stats ───────────────────────────────────────────────────
+
+@app.get("/stats")
+async def get_stats():
+    """Get dashboard statistics."""
+    companies = get_all_companies()
+    return {
+        "companies_tracked": len(companies),
+        "signals_today": get_signals_today_count(),
+        "high_priority_alerts": get_high_priority_alert_count(),
+        "reports_generated": get_total_reports_count(),
+    }
+
+
+# ── Analytics ───────────────────────────────────────────────
+
+@app.get("/analytics/rankings")
+async def get_analytics_rankings(limit: int = 25):
+    """Get companies ranked by intelligence score with detailed metrics."""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        response = client.table("companies")\
+            .select("id, name, website, intelligence_score, score_change, signals_count")\
+            .eq("is_active", True)\
+            .order("intelligence_score", desc=True)\
+            .limit(limit)\
+            .execute()
+            
+        rankings = []
+        for index, comp in enumerate(response.data or []):
+            rankings.append({
+                "company": comp.get("name"),
+                "score": comp.get("intelligence_score", 0.0),
+                "change": comp.get("score_change", 0.0),
+                "rank": index + 1,
+                "signals": comp.get("signals_count", 0),
+                "id": comp.get("id"),
+                "website": comp.get("website")
+            })
+            
+        return {"rankings": rankings}
+    except Exception as e:
+        logger.error(f"Error fetching analytics rankings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/companies/{company_id}/analytics")
+async def get_company_analytics(company_id: str):
+    """Get latest analytics snapshot and history for a company."""
+    try:
+        from app.database import get_supabase_client, get_latest_analytics_snapshot
+        client = get_supabase_client()
+        
+        metric_type = f"intelligence_score:{company_id}"
+        latest = get_latest_analytics_snapshot(metric_type)
+        
+        from datetime import datetime, timedelta, timezone
+        thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        
+        history_response = client.table("analytics_snapshots")\
+            .select("payload_json, timestamp")\
+            .eq("metric_type", metric_type)\
+            .gte("timestamp", thirty_days_ago)\
+            .order("timestamp", desc=True)\
+            .execute()
+            
+        return {
+            "current": latest,
+            "history": history_response.data or []
+        }
+    except Exception as e:
+        logger.error(f"Error fetching company analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ── Global Market Analytics ──────────────────────────────────
+
+@app.get("/analytics/velocity")
+async def get_global_velocity(days: int = 30):
+    """Get global categorized signal velocity over time."""
+    try:
+        from app.database import get_supabase_client
+        from datetime import datetime, timedelta, timezone
+        from collections import defaultdict
+        
+        client = get_supabase_client()
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        
+        # We query the signals table to categorize
+        response = client.table("signals")\
+            .select("collected_at, source, is_executive_movement, title, content")\
+            .gte("collected_at", start_date)\
+            .execute()
+            
+        daily_counts = defaultdict(lambda: {"hiring": 0, "funding": 0, "launches": 0, "news": 0, "executive": 0})
+        funding_keywords = ["funding", "raised", "series", "seed", "investment", "capital"]
+        
+        for sig in (response.data or []):
+            date_str = sig.get("collected_at")[:10] if sig.get("collected_at") else None
+            if not date_str: continue
+            
+            source = sig.get("source", "").lower()
+            text = (sig.get("title", "") + " " + sig.get("content", "")).lower()
+            
+            # V1: keyword classification for funding
+            # V2: dedicated signal taxonomy
+            is_funding = any(k in text for k in funding_keywords)
+            
+            if sig.get("is_executive_movement"):
+                daily_counts[date_str]["executive"] += 1
+            elif source == "jobs":
+                daily_counts[date_str]["hiring"] += 1
+            elif is_funding:
+                daily_counts[date_str]["funding"] += 1
+            elif source in ["producthunt", "github"]:
+                daily_counts[date_str]["launches"] += 1
+            else:
+                daily_counts[date_str]["news"] += 1
+                
+        # Format as array
+        result = []
+        for date_str in sorted(daily_counts.keys()):
+            entry = {"date": date_str}
+            entry.update(daily_counts[date_str])
+            result.append(entry)
+            
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching global velocity: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/sentiment")
+async def get_global_sentiment(days: int = 30):
+    """Get latest company sentiment rankings."""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        
+        response = client.table("companies").select("id, name, is_active").eq("is_active", True).execute()
+        companies = response.data or []
+        
+        results = []
+        for c in companies:
+            comp_id = c["id"]
+            metric_type = f"intelligence_score:{comp_id}"
+            
+            snap_res = client.table("analytics_snapshots")\
+                .select("payload_json")\
+                .eq("metric_type", metric_type)\
+                .order("timestamp", desc=True)\
+                .limit(1)\
+                .execute()
+                
+            sentiment = 7.5 # Default neutral
+            if snap_res.data and snap_res.data[0].get("payload_json"):
+                payload = snap_res.data[0]["payload_json"]
+                if isinstance(payload, str):
+                    import json
+                    try:
+                        payload = json.loads(payload)
+                    except:
+                        pass
+                sentiment = payload.get("sentiment", 7.5)
+                
+            results.append({
+                "company_name": c["name"],
+                "sentiment_score": sentiment
+            })
+            
+        # Sort by sentiment descending
+        results.sort(key=lambda x: x["sentiment_score"], reverse=True)
+        return results
+    except Exception as e:
+        logger.error(f"Error fetching global sentiment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/anomalies")
+async def get_global_anomalies(days: int = 30):
+    """Get global anomalies and critical alerts."""
+    try:
+        from app.database import get_supabase_client
+        from datetime import datetime, timedelta, timezone
+        
+        client = get_supabase_client()
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        
+        response = client.table("alerts")\
+            .select("id, company_name, message, created_at, alert_type, confidence_score, impact_level")\
+            .gte("created_at", start_date)\
+            .neq("alert_type", "news_article")\
+            .neq("alert_type", "signal")\
+            .neq("alert_type", "anomaly")\
+            .order("created_at", desc=True)\
+            .limit(10)\
+            .execute()
+            
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error fetching global anomalies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/share-of-voice")
+async def get_share_of_voice(days: int = 30):
+    """Get competitive share of voice (signal volume per company)."""
+    try:
+        from app.database import get_supabase_client
+        from datetime import datetime, timedelta, timezone
+        from collections import defaultdict
+        
+        client = get_supabase_client()
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        
+        # Get active companies
+        comp_res = client.table("companies").select("id, name").eq("is_active", True).execute()
+        companies = {c["id"]: c["name"] for c in (comp_res.data or [])}
+        
+        # Get signals
+        sig_res = client.table("signals").select("company_id").gte("collected_at", start_date).execute()
+        
+        counts = defaultdict(int)
+        total = 0
+        for sig in (sig_res.data or []):
+            cid = sig.get("company_id")
+            if cid in companies:
+                counts[cid] += 1
+                total += 1
+                
+        results = []
+        for cid, count in counts.items():
+            results.append({
+                "company": companies[cid],
+                "volume": count,
+                "percentage": round((count / total * 100), 1) if total > 0 else 0
+            })
+            
+        results.sort(key=lambda x: x["volume"], reverse=True)
+        return results
+    except Exception as e:
+        logger.error(f"Error fetching share of voice: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/distribution")
+async def get_intelligence_distribution():
+    """Get distribution of intelligence scores."""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        
+        response = client.table("companies")\
+            .select("intelligence_score")\
+            .eq("is_active", True)\
+            .execute()
+            
+        buckets = {
+            "90-100": 0,
+            "80-89": 0,
+            "70-79": 0,
+            "60-69": 0,
+            "0-59": 0
+        }
+        
+        for c in (response.data or []):
+            score = c.get("intelligence_score", 0)
+            if score >= 90: buckets["90-100"] += 1
+            elif score >= 80: buckets["80-89"] += 1
+            elif score >= 70: buckets["70-79"] += 1
+            elif score >= 60: buckets["60-69"] += 1
+            else: buckets["0-59"] += 1
+            
+        results = [{"range": k, "count": v} for k, v in buckets.items()]
+        return results
+    except Exception as e:
+        logger.error(f"Error fetching intelligence distribution: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/kpis")
+async def get_global_kpis(days: int = 30):
+    """Get global top-level KPIs."""
+    try:
+        from app.database import get_supabase_client
+        from datetime import datetime, timedelta, timezone
+        
+        client = get_supabase_client()
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        
+        # 1. Tracked Companies
+        comp_res = client.table("companies").select("id", count="exact").eq("is_active", True).execute()
+        tracked_companies = comp_res.count or 0
+        
+        # 2. Signals Analyzed
+        sig_res = client.table("signals").select("id", count="exact").gte("collected_at", start_date).execute()
+        signals_analyzed = sig_res.count or 0
+        
+        # 3. Critical Events
+        alert_res = client.table("alerts").select("id", count="exact").gte("created_at", start_date).execute()
+        critical_events = alert_res.count or 0
+        
+        # 4. Average Global Sentiment
+        response = client.table("companies").select("id").eq("is_active", True).execute()
+        companies = response.data or []
+        total_sentiment = 0
+        count_sentiment = 0
+        
+        for c in companies:
+            metric_type = f"intelligence_score:{c['id']}"
+            snap_res = client.table("analytics_snapshots").select("payload_json").eq("metric_type", metric_type).order("timestamp", desc=True).limit(1).execute()
+            if snap_res.data and snap_res.data[0].get("payload_json"):
+                payload = snap_res.data[0]["payload_json"]
+                if isinstance(payload, str):
+                    import json
+                    try: payload = json.loads(payload)
+                    except: pass
+                total_sentiment += payload.get("sentiment", 7.5)
+                count_sentiment += 1
+                
+        avg_sentiment = round(total_sentiment / count_sentiment, 1) if count_sentiment > 0 else 7.5
+        
+        return {
+            "tracked_companies": tracked_companies,
+            "signals_analyzed": signals_analyzed,
+            "critical_events": critical_events,
+            "average_sentiment": avg_sentiment
+        }
+    except Exception as e:
+        logger.error(f"Error fetching global KPIs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
