@@ -334,3 +334,6 @@ def save_alert(alert_data: dict) -> None:
     except Exception as e:
         logger.error(f"Error saving alert: {e}")
 
+
+def get_unsent_alerts() -> list:
+    return []
