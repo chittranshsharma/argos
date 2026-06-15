@@ -134,4 +134,20 @@ def refresh_analytics():
     Analytics Refresh — runs every 15 minutes.
     Aggregates signals and recomputes intelligence score for all companies.
     """
-    return None
+    logger.info("Starting analytics refresh...")
+    try:
+        from app.database import get_all_companies
+        from app.analysis.analytics_engine import AnalyticsEngine
+        
+        companies = get_all_companies()
+        engine = AnalyticsEngine()
+        
+        for company in companies:
+            try:
+                engine.compute_analytics(company["id"], company["name"])
+            except Exception as e:
+                logger.error(f"Analytics refresh failed for {company.get('name')}: {e}")
+                
+        logger.info(f"Analytics refresh completed for {len(companies)} companies.")
+    except Exception as e:
+        logger.error(f"Analytics refresh cycle failed: {e}")
