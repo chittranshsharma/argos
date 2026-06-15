@@ -13,3 +13,6 @@ from app.config import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
 
 logger = logging.getLogger(__name__)
 
+
+class RedditAgent:
+    pass
