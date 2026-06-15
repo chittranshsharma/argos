@@ -125,3 +125,45 @@ export function GraphShowcase() {
             />
           </div>
         )}
+
+        {/* Cinematic Overlay - Selected Node Panel */}
+        {selectedNode && (
+          <div className="absolute top-8 left-8 w-72 bg-surface-lowest/90 backdrop-blur-md border border-primary/30 p-5 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] z-10 animate-fade-in pointer-events-none">
+            <div className="flex items-center gap-2 mb-4 text-xs font-mono text-primary uppercase tracking-widest border-b border-primary/20 pb-2">
+              <Network className="w-4 h-4" />
+              Selected Node
+            </div>
+            
+            <h3 className="text-2xl font-bold text-on-surface mb-6 truncate">{selectedNode.id}</h3>
+
+            <div className="space-y-4 font-mono text-sm">
+              <div className="flex justify-between border-b border-surface-bright/20 pb-2">
+                <span className="text-on-surface-variant">Activity Level</span>
+                <span className={`font-bold ${
+                  selectedNode.activityLevel === 'High' ? 'text-status-elevated' : 
+                  selectedNode.activityLevel === 'Elevated' ? 'text-status-moderate' :
+                  selectedNode.activityLevel === 'Moderate' ? 'text-status-moderate' : 'text-on-surface'
+                }`}>{selectedNode.activityLevel}</span>
+              </div>
+              <div className="flex justify-between border-b border-surface-bright/20 pb-2">
+                <span className="text-on-surface-variant">Connections</span>
+                <span className="text-on-surface font-bold">{selectedNode.connections}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-on-surface-variant">Momentum</span>
+                <span className="text-status-success font-bold">{selectedNode.momentum}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Scanline Overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: `linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 50%)`,
+          backgroundSize: '100% 4px',
+          zIndex: 5
+        }}></div>
+      </div>
+    </div>
+  );
+}
