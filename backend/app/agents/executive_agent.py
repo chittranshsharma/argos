@@ -17,4 +17,8 @@ from app.llm import get_groq_llm, llm_invoke
 logger = logging.getLogger(__name__)
 
 class ExecutiveAgent:
+    """Collects executive and leadership movement signals."""
+
+    def collect(self, company_name: str, company_id: str) -> list[dict]:
+        """Fetch and extract executive movements."""
     pass
