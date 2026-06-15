@@ -47,3 +47,18 @@ export function IntelligencePipeline() {
                 {idx < steps.length - 1 ? (
                   <ArrowDown className="w-5 h-5 text-primary" />
                 ) : (
+                  <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+                )}
+              </div>
+
+              <div className={`md:w-1/2 bg-surface-low/50 backdrop-blur-sm border border-surface-bright/20 p-5 rounded-lg ${idx % 2 === 0 ? 'md:mr-8' : 'md:ml-8'}`}>
+                <h4 className="font-mono font-bold text-primary mb-1 uppercase tracking-wider">{step.title}</h4>
+                <p className="text-sm text-on-surface-variant font-mono">{step.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
