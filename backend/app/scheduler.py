@@ -153,4 +153,43 @@ def refresh_analytics():
         logger.error(f"Analytics refresh cycle failed: {e}")
 
 def start_scheduler():
-    return None
+    """Configure and start the APScheduler."""
+    # Job 1: Monitoring cycle every 6 hours
+    scheduler.add_job(
+        run_monitoring_cycle,
+        trigger=IntervalTrigger(hours=MONITOR_INTERVAL_HOURS),
+        id="monitoring_cycle",
+        name="Company Monitoring Cycle",
+        replace_existing=True,
+    )
+
+    # Job 2: Weekly digest on Mondays at 9am
+    scheduler.add_job(
+        send_weekly_digest,
+        trigger=CronTrigger(day_of_week="mon", hour=WEEKLY_DIGEST_HOUR),
+        id="weekly_digest",
+        name="Weekly Intelligence Digest",
+        replace_existing=True,
+    )
+
+    # Job 3: Real-time alerts every 15 minutes
+    scheduler.add_job(
+        send_real_time_alerts,
+        trigger=IntervalTrigger(minutes=ALERT_CHECK_INTERVAL_MINUTES),
+        id="real_time_alerts",
+        name="Real-time Alert Check",
+        replace_existing=True,
+    )
+    
+    # Job 4: Analytics refresh every 15 minutes
+    scheduler.add_job(
+        refresh_analytics,
+        trigger=IntervalTrigger(minutes=15),
+        id="refresh_analytics",
+        name="Analytics Refresh",
+        replace_existing=True,
+    )
+
+    scheduler.start()
+    logger.info("APScheduler started with 4 jobs")
+
