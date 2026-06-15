@@ -127,3 +127,6 @@ def collect_signals_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 # Node 2: Filter new signals (deduplication)
 # ═══════════════════════════════════════════════════════════
+
+def filter_new_signals_node(state: dict) -> dict:
+    return {}
