@@ -28,4 +28,12 @@ def get_supabase_client() -> Client:
 # ── Companies ───────────────────────────────────────────────
 
 def get_all_companies() -> list:
-    return []
+    """Return all active companies."""
+    try:
+        client = get_supabase_client()
+        response = client.table("companies").select("*").eq("is_active", True).execute()
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting all companies: {e}")
+        return []
+
