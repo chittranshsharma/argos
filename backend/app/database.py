@@ -281,4 +281,37 @@ def get_signal_baseline(company_id: str, source: str) -> dict:
     Get historical average signal count per week for a 
     company+source combo. Used for anomaly detection.
     """
-    return {}
+    try:
+        from datetime import datetime, timedelta, timezone
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+
+        thirty_days_ago = (
+            datetime.now(timezone.utc) - timedelta(days=30)
+        ).isoformat()
+        
+        result = client.table("signals")\
+            .select("id", count="exact")\
+            .eq("company_id", company_id)\
+            .eq("source", source)\
+            .gte("collected_at", thirty_days_ago)\
+            .execute()
+        
+        total = result.count or 0
+        weekly_avg = total / 4.3  # 30 days / 7 days per week
+
+        # Also get current week count
+        seven_days_ago = (
+            datetime.now(timezone.utc) - timedelta(days=7)
+        ).isoformat()
+        current_week_result = client.table("signals")\
+            .select("id", count="exact")\
+            .eq("company_id", company_id)\
+            .eq("source", source)\
+            .gte("collected_at", seven_days_ago)\
+            .execute()
+        current_week_count = current_week_result.count or 0
+
+        return {"weekly_avg": weekly_avg, "total_30d": total, "current_week_count": current_week_count}
+    except Exception as e:
+        return {"weekly_avg": 0, "total_30d": 0, "current_week_count": 0}
