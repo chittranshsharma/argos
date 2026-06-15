@@ -370,3 +370,6 @@ Be specific and factual. Only include findings supported by the signals."""
 # ═══════════════════════════════════════════════════════════
 # Node 4: Store entities and relationships in Neo4j
 # ═══════════════════════════════════════════════════════════
+
+def store_graph_node(state: dict) -> dict:
+    return {}
