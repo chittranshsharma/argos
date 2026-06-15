@@ -453,4 +453,20 @@ def save_analytics_snapshot(metric_type: str, payload: dict) -> None:
         logger.error(f"Error saving analytics snapshot {metric_type}: {e}")
 
 def get_latest_analytics_snapshot(metric_type: str) -> dict:
-    return {}
+    """Get the most recent analytics payload for a given type."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("analytics_snapshots")
+            .select("payload_json")
+            .eq("metric_type", metric_type)
+            .order("timestamp", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if response.data:
+            return response.data[0].get("payload_json", {})
+        return {}
+    except Exception as e:
+        logger.error(f"Error getting analytics snapshot {metric_type}: {e}")
+        return {}
