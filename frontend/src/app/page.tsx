@@ -54,3 +54,18 @@ export default async function LandingPage() {
           <span className="text-primary">Start Reading Intent.</span>
         </h2>
         
+        <p className="text-xl text-on-surface-variant max-w-2xl mb-12 font-mono">
+          Argos transforms fragmented signals into actionable intelligence.
+        </p>
+
+        <Link 
+          href={user ? "/dashboard" : "/login"} 
+          className="bg-primary text-black font-bold text-lg px-10 py-5 rounded-xl hover:bg-primary-hover hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+        >
+          {user ? "ENTER COMMAND CENTER" : "REQUEST ACCESS"}
+        </Link>
+      </div>
+
+    </div>
+  );
+}
