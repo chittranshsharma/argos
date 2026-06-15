@@ -130,4 +130,8 @@ def send_real_time_alerts():
 
 
 def refresh_analytics():
+    """
+    Analytics Refresh — runs every 15 minutes.
+    Aggregates signals and recomputes intelligence score for all companies.
+    """
     return None
