@@ -54,3 +54,54 @@ export default function AddCompanyModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClose = () => {
+    setName("");
+    setWebsite("");
+    setDiscovered(null);
+    setError(null);
+    setStep("input");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-lg mx-4 glass-card p-6 animate-slide-up">
+        {/* Close Button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-argos-text-dim hover:text-argos-text transition-colors"
+        >
+          ✕
+        </button>
+
+        {step === "input" ? (
+          <>
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-argos-text">
+                Track New Company
+              </h2>
+              <p className="text-sm text-argos-text-dim mt-1">
+                Argos will auto-discover all available data sources
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-argos-text-muted mb-1.5">
+                  Company Name *
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
