@@ -104,3 +104,6 @@ def send_weekly_digest():
     except Exception as e:
         logger.error(f"Weekly digest failed: {e}")
 
+
+def send_real_time_alerts():
+    return None
