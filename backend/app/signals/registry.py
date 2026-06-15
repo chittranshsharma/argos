@@ -10,3 +10,6 @@ class SignalType(str, Enum):
     PARTNERSHIP = "PARTNERSHIP"
     NEWS = "NEWS"
     SOCIAL = "SOCIAL"
+
+class SignalSubtype(str, Enum):
+    pass
