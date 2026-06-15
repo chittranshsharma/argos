@@ -249,4 +249,15 @@ def get_reports(company_id: str) -> list:
 
 
 def get_all_reports(company_id: str = None) -> list:
-    pass
+    """Get all reports, optionally filtered by company."""
+    try:
+        client = get_supabase_client()
+        query = client.table("reports").select("*").order("generated_at", desc=True)
+        if company_id:
+            query = query.eq("company_id", company_id)
+        response = query.execute()
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting all reports: {e}")
+        return []
+
