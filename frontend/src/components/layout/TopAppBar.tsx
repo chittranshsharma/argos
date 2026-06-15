@@ -44,3 +44,23 @@ export function TopAppBar() {
             <Search className="h-4 w-4 text-on-surface-variant" />
           </div>
           <input
+            type="text"
+            className="w-full bg-surface-low border border-surface-bright/30 rounded-full pl-10 pr-12 py-1.5 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+            placeholder="Search entities, signals, or topics..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <span className="text-xs font-mono text-on-surface-variant/50 border border-surface-bright/30 rounded px-1.5 py-0.5">⌘K</span>
+          </div>
+        </form>
+      </div>
+
+      <div className="flex items-center gap-4 relative">
+        <div className="relative" ref={profileRef}>
+          <button 
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className="h-8 w-8 rounded-full bg-surface-bright/30 border border-surface-bright/50 flex items-center justify-center text-on-surface hover:border-primary/50 transition-colors"
+          >
+            <User className="h-4 w-4" />
+          </button>
