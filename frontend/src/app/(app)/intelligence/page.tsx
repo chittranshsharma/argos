@@ -69,3 +69,35 @@ export default function IntelligencePage() {
             <option value="ALL">All Event Types</option>
             {types.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</option>)}
           </select>
+
+          <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-surface-bright/50 bg-surface text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-colors ml-2">
+            <Filter className="w-4 h-4" />
+            Filters
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
+          {loading ? (
+             <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="skeleton h-[120px] w-full" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {criticalSignals.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-sm font-bold text-status-critical uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-status-critical animate-pulse" /> Critical Priority
+                  </h2>
+                  <SignalFeed signals={criticalSignals} showCompany={true} />
+                </div>
+              )}
+
+              <div>
+                {criticalSignals.length > 0 && (
+                  <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-4">Chronological Stream</h2>
+                )}
+                {regularSignals.length > 0 ? (
