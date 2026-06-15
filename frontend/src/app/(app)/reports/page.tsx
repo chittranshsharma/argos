@@ -187,3 +187,65 @@ export default function ReportsPage() {
                   selectedReport?.id === report.id
                     ? "bg-primary/10 border-primary"
                     : "bg-surface-low border-surface-bright/20 hover:border-primary/50"
+                }`}
+              >
+                <div className="text-xs font-mono text-on-surface-variant mb-1">
+                  {new Date(report.generated_at).toLocaleDateString()}
+                </div>
+                <h3 className="font-semibold text-on-surface line-clamp-1">{report.company_name} Briefing</h3>
+              </button>
+            ))
+          ) : (
+            <div className="text-center py-12 text-on-surface-variant border border-surface-bright/20 rounded-xl bg-surface-low border-dashed">
+              No reports generated yet.
+            </div>
+          )}
+        </div>
+
+        {/* Report Viewer */}
+        <div className="flex-1 glass-panel rounded-2xl overflow-hidden flex flex-col border border-surface-bright/30">
+          {selectedReport ? (
+            <>
+              <div className="p-6 border-b border-surface-bright/20 flex justify-between items-start bg-surface-lowest/50">
+                <div>
+                  <h2 className="text-2xl font-bold text-on-surface mb-2">{selectedReport.company_name} Briefing</h2>
+                  <div className="flex gap-4 text-sm text-on-surface-variant">
+                    <span className="font-mono">{new Date(selectedReport.generated_at).toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleDownloadPdf}
+                    className="p-2 rounded-lg bg-surface-bright/20 hover:bg-surface-bright/40 text-on-surface transition-colors" 
+                    title="Export PDF"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <Link 
+                    href={`/companies/${selectedReport.company_id}`}
+                    className="p-2 rounded-lg bg-surface-bright/20 hover:bg-surface-bright/40 text-on-surface transition-colors" 
+                    title="View Entity"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+              <div id="report-content" className="flex-1 p-8 overflow-y-auto bg-surface-lowest">
+                <div className="prose prose-invert max-w-none markdown-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {selectedReport.report_markdown}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant">
+              <Eye className="w-12 h-12 mb-4 opacity-20" />
+              <p>Select a briefing to view contents.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
