@@ -15,4 +15,20 @@ logger = logging.getLogger(__name__)
 
 
 class RedditAgent:
+    """Collects signals from Reddit: posts and comment spikes."""
+
+    def __init__(self):
+        self.reddit = None
+        if REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET:
+            try:
+                self.reddit = praw.Reddit(
+                    client_id=REDDIT_CLIENT_ID,
+                    client_secret=REDDIT_CLIENT_SECRET,
+                    user_agent=REDDIT_USER_AGENT,
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize PRAW: {e}")
+
+    def collect(self, subreddit: str, company_name: str, company_id: str) -> list[dict]:
+        """
     pass
