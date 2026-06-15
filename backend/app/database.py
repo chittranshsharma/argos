@@ -93,3 +93,6 @@ def save_source(source_data: dict) -> str:
     except Exception as e:
         logger.error(f"Error saving source: {e}")
     return None
+
+def save_signal(signal_data: dict) -> dict:
+    return {}
