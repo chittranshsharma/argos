@@ -365,4 +365,14 @@ def mark_alert_sent(alert_id: str, channels: list[str]) -> None:
 
 
 def get_job_signals(company_id: str, days: int = 30) -> list:
-    return []
+    from datetime import datetime, timedelta, timezone
+    from app.database import get_supabase_client
+    client = get_supabase_client()
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    result = client.table("signals")\
+        .select("*")\
+        .eq("company_id", company_id)\
+        .eq("source", "jobs")\
+        .gte("collected_at", since)\
+        .execute()
+    return result.data or []
