@@ -232,4 +232,18 @@ def save_report(report_data: dict) -> None:
 
 
 def get_reports(company_id: str) -> list:
-    return []
+    """Get all reports for a company, newest first."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("reports")
+            .select("*")
+            .eq("company_id", company_id)
+            .order("generated_at", desc=True)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting reports: {e}")
+        return []
+
