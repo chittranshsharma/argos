@@ -25,3 +25,6 @@ def get_groq_llm() -> ChatGroq:
         max_tokens=4096,
     )
 
+
+def get_gemini_llm() -> ChatGoogleGenerativeAI:
+    return None
