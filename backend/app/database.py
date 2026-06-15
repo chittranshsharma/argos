@@ -84,4 +84,12 @@ def deactivate_company(company_id: str) -> dict:
 # ── Signals ─────────────────────────────────────────────────
 
 def save_source(source_data: dict) -> str:
-    return {}
+    """Insert a new source record and return its UUID."""
+    try:
+        client = get_supabase_client()
+        response = client.table("sources").insert(source_data).execute()
+        if response.data:
+            return response.data[0]["id"]
+    except Exception as e:
+        logger.error(f"Error saving source: {e}")
+    return None
