@@ -35,4 +35,24 @@ class SignalValidator:
     
     def validate_and_format(self, raw_data: dict, agent_name: str) -> Optional[RawAgentSignal]:
         """Validates a dictionary output from an agent and ensures it matches the schema."""
-    pass
+        try:
+            # Ensure the agent name is tracked
+            raw_data["agent"] = agent_name
+            
+            # Default occurred_at if missing
+            if not raw_data.get("occurred_at"):
+                raw_data["occurred_at"] = datetime.now(timezone.utc).isoformat()
+            
+            # Map old 'source' format to signal_type if necessary
+            if "source" in raw_data and "signal_type" not in raw_data:
+                source_val = raw_data.pop("source").upper()
+                try:
+                    raw_data["signal_type"] = SignalType(source_val)
+                except ValueError:
+                    raw_data["signal_type"] = SignalType.NEWS
+            
+            signal = RawAgentSignal(**raw_data)
+            return signal
+        except Exception as e:
+            logger.error(f"Signal validation failed for agent {agent_name}: {e}\nData: {raw_data}")
+            return None
