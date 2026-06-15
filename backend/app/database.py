@@ -275,3 +275,6 @@ def get_latest_reports() -> list:
     except Exception as e:
         logger.error(f"Failed to fetch reports for {company_id}: {e}")
         return []
+
+def get_signal_baseline(company_id: str, source: str) -> dict:
+    return {}
