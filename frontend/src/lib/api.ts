@@ -154,3 +154,55 @@ export async function clearReports(): Promise<void> {
 }
 
 // ── Analytics ──────────────────────────────────────────────
+
+export async function getCompanyAnalytics(
+  companyId: string
+): Promise<import('./types').CompanyAnalytics | null> {
+  try {
+    return await apiFetch<import('./types').CompanyAnalytics>(`/companies/${companyId}/analytics`);
+  } catch (err) {
+    console.error("Failed to fetch analytics", err);
+    return null;
+  }
+}
+
+export async function getRankings(
+  limit: number = 25
+): Promise<import('./types').RankingEntry[]> {
+  const data = await apiFetch<{ rankings: import('./types').RankingEntry[] }>(`/analytics/rankings?limit=${limit}`);
+  return data.rankings;
+}
+
+export async function getGlobalVelocity(
+  days: number = 30
+): Promise<import('./types').VelocityEntry[]> {
+  return await apiFetch<import('./types').VelocityEntry[]>(`/analytics/velocity?days=${days}`);
+}
+
+export async function getGlobalSentiment(
+  days: number = 30
+): Promise<import('./types').SentimentEntry[]> {
+  return await apiFetch<import('./types').SentimentEntry[]>(`/analytics/sentiment?days=${days}`);
+}
+
+export async function getGlobalAnomalies(
+  days: number = 30
+): Promise<import('./types').Alert[]> {
+  return await apiFetch<import('./types').Alert[]>(`/analytics/anomalies?days=${days}`);
+}
+
+export async function getGlobalKPIs(
+  days: number = 30
+): Promise<import('./types').GlobalKPIs> {
+  return await apiFetch<import('./types').GlobalKPIs>(`/analytics/kpis?days=${days}`);
+}
+
+export async function getShareOfVoice(
+  days: number = 30
+): Promise<import('./types').ShareOfVoiceEntry[]> {
+  return await apiFetch<import('./types').ShareOfVoiceEntry[]>(`/analytics/share-of-voice?days=${days}`);
+}
+
+export async function getIntelligenceDistribution(): Promise<import('./types').DistributionEntry[]> {
+  return await apiFetch<import('./types').DistributionEntry[]>(`/analytics/distribution`);
+}
