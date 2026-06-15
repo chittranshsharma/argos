@@ -442,4 +442,12 @@ def get_total_reports_count() -> int:
 # ── Analytics Snapshots ─────────────────────────────────────
 
 def save_analytics_snapshot(metric_type: str, payload: dict) -> None:
-    pass
+    """Insert a new analytics snapshot."""
+    try:
+        client = get_supabase_client()
+        client.table("analytics_snapshots").insert({
+            "metric_type": metric_type,
+            "payload_json": payload,
+        }).execute()
+    except Exception as e:
+        logger.error(f"Error saving analytics snapshot {metric_type}: {e}")
