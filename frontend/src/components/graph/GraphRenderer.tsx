@@ -51,3 +51,55 @@ export default function GraphRenderer({ data, onNodeClick, controlRef }: GraphRe
       fgRef.current.d3Force('link').distance(60);
       // Center the graph gently to avoid nodes wandering too far off
       fgRef.current.d3Force('center').strength(0.05);
+
+      if (controlRef) {
+        controlRef.current = {
+          zoomIn: () => {
+            const currentZoom = fgRef.current.zoom();
+            fgRef.current.zoom(currentZoom * 1.5, 400);
+          },
+          zoomOut: () => {
+            const currentZoom = fgRef.current.zoom();
+            fgRef.current.zoom(currentZoom / 1.5, 400);
+          },
+          resetView: () => {
+            fgRef.current.zoomToFit(400, 50);
+          }
+        };
+      }
+    }
+  }, [ForceGraph2D, data, controlRef]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setDimensions({
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight,
+      });
+    }
+    const handleResize = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  if (!ForceGraph2D) {
+    return <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-sm">Initializing rendering engine...</div>;
+  }
+
+  return (
+    <div ref={containerRef} className="absolute inset-0 bg-surface-lowest overflow-hidden">
+      <ForceGraph2D
+        ref={fgRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        graphData={data}
+        nodeLabel="label"
+        nodeColor={(node: GraphNode) => {
+          switch (node.type) {
