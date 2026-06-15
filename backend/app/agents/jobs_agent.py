@@ -16,4 +16,8 @@ from app.llm import get_groq_llm, llm_invoke
 logger = logging.getLogger(__name__)
 
 class JobsAgent:
+    """Collects hiring signals and derives strategic intelligence."""
+
+    def collect(self, careers_url: str, company_name: str, company_id: str) -> list[dict]:
+        """Scrape careers page and derive intelligence."""
     pass
