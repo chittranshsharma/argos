@@ -247,3 +247,6 @@ def get_reports(company_id: str) -> list:
         logger.error(f"Error getting reports: {e}")
         return []
 
+
+def get_all_reports(company_id: str = None) -> list:
+    pass
