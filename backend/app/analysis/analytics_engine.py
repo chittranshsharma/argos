@@ -10,3 +10,6 @@ from app.database import get_supabase_client, save_analytics_snapshot
 from app.memory.graph_db import GraphDB
 
 logger = logging.getLogger(__name__)
+
+class AnalyticsEngine:
+    pass
