@@ -506,3 +506,6 @@ Make it concise, professional, and actionable. Use bullet points and bold for em
 # ═══════════════════════════════════════════════════════════
 # Node 6: Generate alerts for high-importance signals
 # ═══════════════════════════════════════════════════════════
+
+def generate_alerts_node(state: dict) -> dict:
+    return {}
