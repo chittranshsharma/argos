@@ -76,4 +76,19 @@ class AddCompanyRequest(BaseModel):
 
 
 class CompanyResponse(BaseModel):
-    pass
+    id: str
+    name: str
+    website: Optional[str] = None
+    github_org: Optional[str] = None
+    careers_url: Optional[str] = None
+    reddit_sub: Optional[str] = None
+    producthunt_slug: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    changelog_url: Optional[str] = None
+    news_keywords: Optional[list[str]] = None
+    added_at: Optional[str] = None
+    last_monitored: Optional[str] = None
+    is_active: Optional[bool] = True
+
+
+# ── Background task helpers ─────────────────────────────────
