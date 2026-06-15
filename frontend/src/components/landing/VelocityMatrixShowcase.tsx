@@ -24,3 +24,26 @@ export function VelocityMatrixShowcase() {
         <div className="flex flex-col gap-2 mb-12">
           <h2 className="text-sm font-mono text-primary uppercase tracking-widest">Analytics Centerpiece</h2>
           <h3 className="text-3xl font-bold tracking-tighter uppercase">Signal Velocity Matrix</h3>
+          <p className="text-on-surface-variant font-mono text-sm max-w-2xl mt-4">
+            A heat map of competitor momentum over time. Detect silent expansion phases before public announcements.
+          </p>
+        </div>
+
+        <div className="bg-surface-low border border-surface-bright/50 rounded-xl p-6 overflow-hidden">
+          
+          <div className="flex mb-4">
+            <div className="w-32 flex-shrink-0"></div>
+            <div className="flex-1 flex justify-between text-[10px] font-mono text-on-surface-variant uppercase">
+              {days.map(d => (
+                <div key={d} className="w-8 text-center">{d}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {companies.map((company, rowIndex) => (
+              <div key={company} className="flex items-center group">
+                <div className="w-32 flex-shrink-0 text-xs font-mono text-on-surface truncate pr-4 group-hover:text-primary transition-colors">
+                  {company}
+                </div>
+                <div className="flex-1 flex justify-between">
