@@ -17,4 +17,8 @@ from app.llm import get_groq_llm, llm_invoke
 logger = logging.getLogger(__name__)
 
 class FundingAgent:
+    """Collects funding and M&A signals."""
+
+    def collect(self, company_name: str, company_id: str) -> list[dict]:
+        """Fetch and extract funding events."""
     pass
