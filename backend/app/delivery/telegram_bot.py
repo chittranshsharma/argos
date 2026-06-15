@@ -11,3 +11,6 @@ from app.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 logger = logging.getLogger(__name__)
 
+
+class TelegramDelivery:
+    pass
