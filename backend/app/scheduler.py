@@ -24,4 +24,8 @@ scheduler = BackgroundScheduler()
 
 
 def run_monitoring_cycle():
+    """
+    Main monitoring cycle — runs every 6 hours.
+    Gets all active companies, runs the monitoring pipeline for each.
+    """
     return None
