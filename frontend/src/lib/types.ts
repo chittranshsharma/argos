@@ -170,3 +170,60 @@ export interface ScoreBreakdown {
 
 export interface CompanyDetailResponse {
   company: Company;
+  latest_report: Report | null;
+  recent_signals: Signal[];
+  graph_data: GraphData;
+  score_breakdown?: ScoreBreakdown;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+export interface GraphNode {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+  relation: string;
+}
+
+// ── Market Analytics ───────────────────────────────────────
+
+export interface VelocityEntry {
+  date: string;
+  hiring: number;
+  funding: number;
+  launches: number;
+  news: number;
+  executive: number;
+}
+
+export interface SentimentEntry {
+  company_name: string;
+  sentiment_score: number;
+}
+
+export interface GlobalKPIs {
+  tracked_companies: number;
+  signals_analyzed: number;
+  critical_events: number;
+  average_sentiment: number;
+}
+
+export interface ShareOfVoiceEntry {
+  company: string;
+  volume: number;
+  percentage: number;
+}
+
+export interface DistributionEntry {
+  range: string;
+  count: number;
+}
