@@ -4,3 +4,9 @@ python-dotenv
 supabase
 neo4j
 langchain
+langgraph
+langchain-google-genai
+langchain-groq
+langchain-community
+praw
+feedparser
