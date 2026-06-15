@@ -32,4 +32,98 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════
 
 def collect_signals_node(state: dict) -> dict:
-    return {}
+    """Run ALL agents in parallel using ThreadPoolExecutor."""
+    company_data = state["company_data"]
+    company_name = state["company_name"]
+    company_id = state["company_id"]
+
+    # Build agent tasks based on available company data
+    tasks = []
+
+    if company_data.get("github_org"):
+        tasks.append(("github", GitHubAgent().collect,
+                      {"github_org": company_data["github_org"],
+                       "company_name": company_name, "company_id": company_id}))
+
+    if company_data.get("news_keywords"):
+        tasks.append(("news", NewsAgent().collect,
+                      {"keywords": company_data["news_keywords"],
+                       "company_name": company_name, "company_id": company_id}))
+
+    if company_data.get("reddit_sub") or True:
+        # Always search Reddit even without specific subreddit
+        tasks.append(("reddit", RedditAgent().collect,
+                      {"subreddit": company_data.get("reddit_sub", ""),
+                       "company_name": company_name, "company_id": company_id}))
+
+    tasks.append(("hackernews", HackerNewsAgent().collect,
+                  {"company_name": company_name, "company_id": company_id}))
+
+    if company_data.get("careers_url"):
+        tasks.append(("jobs", JobsAgent().collect,
+                      {"careers_url": company_data["careers_url"],
+                       "company_name": company_name, "company_id": company_id}))
+
+    from app.agents.executive_agent import ExecutiveAgent
+    from app.agents.funding_agent import FundingAgent
+    from app.agents.launch_agent import LaunchAgent
+    from app.agents.partnership_agent import PartnershipsAgent
+
+    # Executive
+    tasks.append(("executive", ExecutiveAgent().collect,
+                  {"company_name": company_name, "company_id": company_id}))
+
+    # Funding
+    tasks.append(("funding", FundingAgent().collect,
+                  {"company_name": company_name, "company_id": company_id}))
+
+    # Launch (replaces changelog and producthunt)
+    tasks.append(("launch", LaunchAgent().collect,
+                  {"company_name": company_name, "company_id": company_id, 
+                   "producthunt_slug": company_data.get("producthunt_slug")}))
+
+    # Partnerships
+    tasks.append(("partnerships", PartnershipsAgent().collect,
+                  {"company_name": company_name, "company_id": company_id}))
+
+    if company_data.get("linkedin_url"):
+        tasks.append(("linkedin", LinkedInAgent().collect,
+                      {"linkedin_url": company_data["linkedin_url"],
+                       "company_name": company_name, "company_id": company_id}))
+
+    # Run all agents sequentially to respect LLM rate limits
+    raw_signals = []
+    agent_stats = {}
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future_to_name = {}
+        for name, func, kwargs in tasks:
+            future = executor.submit(func, **kwargs)
+            future_to_name[future] = name
+
+        for future in as_completed(future_to_name):
+            agent_name = future_to_name[future]
+            try:
+                result = future.result(timeout=120)
+                raw_signals.extend(result)
+                agent_stats[agent_name] = len(result)
+                logger.info(f"  ✓ {agent_name}: {len(result)} signals")
+            except Exception as e:
+                agent_stats[agent_name] = 0
+                logger.error(f"  ✗ {agent_name} failed: {e}")
+
+    logger.info(f"Collected {len(raw_signals)} total signals for {company_name}. "
+                f"Agent stats: {agent_stats}")
+
+    # Update last_monitored timestamp
+    try:
+        update_company(company_id, {"last_monitored": datetime.now(timezone.utc).isoformat()})
+    except Exception as e:
+        logger.error(f"Failed to update last_monitored: {e}")
+
+    return {"raw_signals": raw_signals}
+
+
+# ═══════════════════════════════════════════════════════════
+# Node 2: Filter new signals (deduplication)
+# ═══════════════════════════════════════════════════════════
