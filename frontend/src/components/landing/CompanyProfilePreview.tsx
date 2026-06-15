@@ -53,3 +53,24 @@ export function CompanyProfilePreview() {
               <p className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-4">Detected Vectors</p>
               <div className="space-y-3">
                 {[
+                  { label: "Hiring Expansion", icon: Users },
+                  { label: "Executive Recruitment", icon: Target },
+                  { label: "Infrastructure Growth", icon: Activity },
+                  { label: "Strategic Partnerships", icon: ShieldAlert },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm font-mono text-on-surface bg-surface-lowest/50 p-2 rounded border border-surface-bright/20">
+                    <div className="bg-primary/20 p-1 rounded text-primary">
+                      <Check className="w-4 h-4" />
+                    </div>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
