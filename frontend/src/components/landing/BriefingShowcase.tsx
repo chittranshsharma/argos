@@ -15,3 +15,19 @@ export function BriefingShowcase() {
             Answer the "So what?" immediately. Distribute findings to your leadership team with clear impact and confidence scoring.
           </p>
         </div>
+
+        <div className="md:w-1/2 w-full">
+          <div className="bg-[#0a0a0a] border border-surface-bright/30 p-8 rounded-sm shadow-2xl relative font-mono">
+            {/* Top Secret Stamp */}
+            <div className="absolute top-4 right-4 border-2 border-primary/40 text-primary/40 px-2 py-1 text-xs uppercase font-bold transform rotate-12 select-none">
+              INTERNAL
+            </div>
+
+            <div className="border-b-2 border-on-surface/20 pb-4 mb-6">
+              <h4 className="text-xs text-on-surface-variant uppercase tracking-widest mb-1">Monitored Entity</h4>
+              <h3 className="text-2xl font-bold text-on-surface tracking-tight uppercase">Anthropic</h3>
+            </div>
+
+            <div className="space-y-6 text-sm text-on-surface leading-relaxed">
+              <div>
+                <h4 className="text-xs text-on-surface-variant uppercase tracking-widest mb-2">Primary Assessment</h4>
