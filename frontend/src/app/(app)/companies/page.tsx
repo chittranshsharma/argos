@@ -86,3 +86,43 @@ export default function CompaniesPage() {
           </thead>
           <tbody>
             {loading ? (
+              <tr>
+                <td colSpan={5} className="p-6">
+                  <div className="space-y-3">
+                    <div className="skeleton h-12 w-full" />
+                    <div className="skeleton h-12 w-full" />
+                    <div className="skeleton h-12 w-full" />
+                  </div>
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-12 text-center text-on-surface-variant">
+                  <Globe className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                  <p>No companies found matching &quot;{search}&quot;</p>
+                </td>
+              </tr>
+            ) : (
+              filtered.map((company) => {
+                const activityScore = Math.round(company.intelligence_score || 0);
+                
+                return (
+                  <tr 
+                    key={company.id} 
+                    onClick={() => router.push(`/companies/${company.id}`)}
+                    className="hover:bg-white/5 transition-colors border-b border-surface-bright/10 group cursor-pointer"
+                  >
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-surface-bright/20 flex items-center justify-center text-on-surface font-bold text-sm">
+                          {company.name.charAt(0)}
+                        </div>
+                        <span className="font-medium text-on-surface group-hover:text-primary transition-colors">{company.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex gap-2 text-on-surface-variant">
+                        {company.website && <span title="Website"><Globe className="w-4 h-4" /></span>}
+                        {company.github_org && <span title="GitHub"><Activity className="w-4 h-4" /></span>}
+                        <span title="News Intel"><FileText className="w-4 h-4" /></span>
+                      </div>
