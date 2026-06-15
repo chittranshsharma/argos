@@ -38,3 +38,38 @@ export default function KnowledgeGraph({
   width = 400,
   height = 300,
 }: KnowledgeGraphProps) {
+  // Transform data for react-force-graph
+  const graphData = useMemo(() => {
+    if (!data?.nodes?.length) {
+      return { nodes: [], links: [] };
+    }
+
+    const nodeMap = new Map<string, boolean>();
+    const nodes = data.nodes
+      .filter((n) => {
+        if (nodeMap.has(n.name)) return false;
+        nodeMap.set(n.name, true);
+        return true;
+      })
+      .map((n) => ({
+        id: n.name,
+        name: n.name,
+        type: n.type,
+        description: n.description,
+        color: TYPE_COLORS[n.type] || TYPE_COLORS.Entity,
+      }));
+
+    const nodeNames = new Set(nodes.map((n) => n.id));
+
+    const links = data.links
+      .filter((l) => l.source && l.target && nodeNames.has(l.source) && nodeNames.has(l.target))
+      .map((l) => ({
+        source: l.source,
+        target: l.target,
+        relation: l.relation,
+      }));
+
+    return { nodes, links };
+  }, [data]);
+
+  if (!graphData.nodes.length) {
