@@ -372,4 +372,43 @@ Be specific and factual. Only include findings supported by the signals."""
 # ═══════════════════════════════════════════════════════════
 
 def store_graph_node(state: dict) -> dict:
+    """Store entities and relationships in Neo4j knowledge graph."""
+    entities = state.get("entities", [])
+    relationships = state.get("relationships", [])
+    company_name = state["company_name"]
+
+    if not entities and not relationships:
+        return {}
+
+    try:
+        graph_db = GraphDB()
+
+        # Store entities
+        for entity in entities:
+            graph_db.merge_entity(
+                name=entity.get("name", ""),
+                entity_type=entity.get("type", "Entity"),
+                description=entity.get("description", ""),
+                company_name=company_name,
+            )
+
+        # Store relationships
+        for rel in relationships:
+            graph_db.merge_relationship(
+                source=rel.get("source", ""),
+                relation=rel.get("relation", "related_to"),
+                target=rel.get("target", ""),
+                company_name=company_name,
+            )
+
+        graph_db.close()
+        logger.info(f"Stored {len(entities)} entities, {len(relationships)} relationships in Neo4j")
+    except Exception as e:
+        logger.error(f"Neo4j storage failed (non-fatal): {e}")
+
     return {}
+
+
+# ═══════════════════════════════════════════════════════════
+# Node 5: Generate intelligence report with Gemini
+# ═══════════════════════════════════════════════════════════
