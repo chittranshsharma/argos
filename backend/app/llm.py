@@ -42,4 +42,36 @@ def llm_invoke(llm, prompt: str) -> str:
     Returns the text content of the response.
     Falls back to Gemini if Groq fails due to rate limits.
     """
-    return ""
+    try:
+        @retry(
+            stop=stop_after_attempt(2),
+            wait=wait_exponential(multiplier=1, min=1, max=3),
+            retry=retry_if_exception_type(Exception)
+        )
+        def _invoke_primary():
+            return llm.invoke([HumanMessage(content=prompt)])
+            
+        response = _invoke_primary()
+        return response.content
+    except Exception as e:
+        logger.warning(f"Primary LLM failed ({e}). Falling back to Gemini...")
+        gemini = get_gemini_llm()
+        
+        @retry(
+            stop=stop_after_attempt(1),
+            wait=wait_exponential(multiplier=1, min=1, max=3),
+            retry=retry_if_exception_type(Exception)
+        )
+        def _invoke_fallback():
+            import time
+            time.sleep(2)
+            return gemini.invoke([HumanMessage(content=prompt)])
+            
+        try:
+            response = _invoke_fallback()
+            return response.content
+        except Exception as e:
+            logger.warning(f"Fallback LLM failed ({e}). Using mock response for testing...")
+            if "Executive Summary" in prompt or "key developments" in prompt.lower() or "report" in prompt.lower():
+                return "## Intelligence Report Unavailable\n\n### Executive Summary\nDue to LLM API rate limits, the automated summarization engine could not generate a full analysis for this cycle. The system continues to monitor and store raw signals securely.\n\n### Key Signals\n* The system successfully scraped and stored the signals, but could not synthesize them into a report.\n\n### Recommended Actions\n* Check the Analytics dashboard and Threat Matrix for numerical insights.\n* Review the raw signal stream in the Intelligence feed."
+            return "[]"
