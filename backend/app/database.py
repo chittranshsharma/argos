@@ -426,4 +426,17 @@ def get_high_priority_alert_count() -> int:
 
 
 def get_total_reports_count() -> int:
-    return None
+    """Count total reports generated."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("reports")
+            .select("id", count="exact")
+            .execute()
+        )
+        return response.count or 0
+    except Exception as e:
+        logger.error(f"Error counting reports: {e}")
+        return 0
+
+# ── Analytics Snapshots ─────────────────────────────────────
