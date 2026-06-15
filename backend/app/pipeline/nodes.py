@@ -568,3 +568,6 @@ def generate_alerts_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 # Node 7: Compute Analytics V1
 # ═══════════════════════════════════════════════════════════
+
+def compute_analytics_node(state: dict) -> dict:
+    return {}
