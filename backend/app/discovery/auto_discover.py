@@ -18,4 +18,110 @@ class AutoDiscoverer:
 
     def discover(self, company_name: str, website: str = None) -> dict:
         """
-    pass
+        Use Groq LLM to find all relevant sources for a company.
+        Returns a dict with discovered fields.
+        """
+        website_info = f"\n  Website: {website}" if website else ""
+
+        prompt = f"""You are a research assistant. Given a company name, return a JSON object with these fields (null if unknown):
+{{
+    "github_org": "org name on github.com",
+    "careers_url": "direct URL to careers/jobs page",
+    "reddit_sub": "subreddit name without r/",
+    "producthunt_slug": "slug on producthunt.com",
+    "linkedin_url": "full linkedin.com/company/... URL",
+    "changelog_url": "URL to changelog or blog",
+    "news_keywords": ["keyword1", "keyword2", "keyword3"]
+}}
+
+Company: {company_name}{website_info}
+
+Return ONLY valid JSON, no explanation. Be accurate — only include sources you are confident exist."""
+
+        result = {
+            "github_org": None,
+            "careers_url": None,
+            "reddit_sub": None,
+            "producthunt_slug": None,
+            "linkedin_url": None,
+            "changelog_url": None,
+            "news_keywords": [company_name],
+        }
+
+        try:
+            llm = get_groq_llm()
+            response = llm_invoke(llm, prompt)
+
+            # Parse JSON response
+            parsed = self._parse_json(response)
+            if parsed:
+                # Merge parsed values (keep defaults for None)
+                for key in result:
+                    if key in parsed and parsed[key] is not None:
+                        result[key] = parsed[key]
+
+                # Ensure news_keywords always includes company name
+                if company_name not in (result.get("news_keywords") or []):
+                    keywords = result.get("news_keywords") or []
+                    keywords.insert(0, company_name)
+                    result["news_keywords"] = keywords
+
+            logger.info(f"Discovered sources for {company_name}: {result}")
+
+        except Exception as e:
+            logger.error(f"Auto-discovery failed for {company_name}: {e}")
+
+        # ── Validate GitHub org ─────────────────────────────
+        if result.get("github_org"):
+            result["github_org"] = self._validate_github_org(result["github_org"])
+
+        return result
+
+    def _validate_github_org(self, org: str) -> str | None:
+        """Verify GitHub org exists with a HEAD request."""
+        if not org:
+            return None
+
+        try:
+            url = f"https://api.github.com/orgs/{org}"
+            resp = requests.head(url, timeout=10)
+            if resp.status_code == 200:
+                return org
+
+            # Try as user
+            url = f"https://api.github.com/users/{org}"
+            resp = requests.head(url, timeout=10)
+            if resp.status_code == 200:
+                return org
+
+            logger.warning(f"GitHub org/user '{org}' not found — setting to null")
+            return None
+        except requests.RequestException:
+            return org  # Network error, keep the value
+
+    def _parse_json(self, text: str) -> dict | None:
+        """Extract JSON from LLM response."""
+        # Direct parse
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Find JSON in code block
+        import re
+        match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # Find JSON object
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+
+        return None
