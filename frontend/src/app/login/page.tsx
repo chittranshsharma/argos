@@ -37,3 +37,34 @@ export default function LoginPage() {
       }
     } else {
       const result = await supabase.auth.signInWithPassword({ email, password });
+      if (result.error) {
+        setError(result.error.message);
+        setLoading(false);
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-surface-lowest text-on-surface flex flex-col justify-center items-center p-6">
+      
+      <div className="w-full max-w-md animate-slide-up">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors mb-8">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Gateway
+        </Link>
+
+        <div className="glass-panel p-8 rounded-2xl">
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/30 mb-4">
+              <Lock className="w-6 h-6 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-on-surface text-center">
+              {isSignUp ? "Register Account" : "Authenticate"}
+            </h1>
+            <p className="text-sm text-on-surface-variant mt-2 text-center">
+              {isSignUp ? "Create a new operator identity" : "Secure access to the Command Center"}
+            </p>
+          </div>
