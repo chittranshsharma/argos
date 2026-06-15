@@ -48,3 +48,6 @@ def get_company_by_id(company_id: str) -> dict:
         logger.error(f"Error getting company {company_id}: {e}")
         return {}
 
+
+def add_company(company_data: dict) -> dict:
+    return {}
