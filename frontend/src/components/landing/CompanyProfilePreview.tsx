@@ -17,3 +17,21 @@ export function CompanyProfilePreview() {
           <p className="text-on-surface-variant text-lg leading-relaxed">
             By monitoring specific vectors—hiring, leadership, funding, repositories, and partnerships—Argos determines the strategic posture of your competitors before they announce it.
           </p>
+        </div>
+
+        <div className="md:w-1/2 w-full">
+          {/* Authentic Company Profile Mock */}
+          <div className="border border-primary/20 bg-surface-low rounded-xl p-6 relative overflow-hidden group hover:border-primary/50 transition-colors">
+            
+            {/* Corner Accents */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary/40"></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary/40"></div>
+            
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <p className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Target Entity</p>
+                <h3 className="text-3xl font-bold text-on-surface">Anthropic</h3>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Intelligence Score</p>
+                <p className="text-4xl font-mono font-bold text-status-success">91<span className="text-lg text-on-surface-variant">/100</span></p>
