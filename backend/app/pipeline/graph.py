@@ -16,3 +16,6 @@ from app.pipeline.nodes import (
     generate_alerts_node,
 )
 
+
+def build_monitoring_graph() -> StateGraph:
+    return None
