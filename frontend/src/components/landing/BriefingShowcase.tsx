@@ -47,3 +47,22 @@ export function BriefingShowcase() {
                 <div>
                   <h4 className="text-xs text-on-surface-variant uppercase tracking-widest mb-1">Confidence</h4>
                   <p className="text-xl font-bold text-status-success">89%</p>
+                </div>
+                <div>
+                  <h4 className="text-xs text-on-surface-variant uppercase tracking-widest mb-1">Impact</h4>
+                  <p className="text-xl font-bold text-primary">STRATEGIC</p>
+                </div>
+                <div>
+                  <h4 className="text-xs text-on-surface-variant uppercase tracking-widest mb-1">Generated</h4>
+                  <p className="text-lg text-on-surface">TODAY 14:00Z</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
