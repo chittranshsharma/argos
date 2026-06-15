@@ -265,3 +265,90 @@ export default function AnalyticsPage() {
                 <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-xs">NO DATA</div>
               ) : (
                 <>
+                  <div className="w-1/2 h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={sov.slice(0, 5)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="volume"
+                          nameKey="company"
+                          stroke="none"
+                          startAngle={90}
+                          endAngle={-270}
+                        >
+                          {sov.slice(0, 5).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={["#4ade80", "#60a5fa", "#a78bfa", "#f472b6", "#fbbf24"][index % 5]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '0px', fontFamily: 'monospace', fontSize: '12px' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="w-1/2 h-full flex flex-col justify-center gap-3">
+                    {sov.slice(0, 5).map((entry, i) => (
+                      <div key={entry.company} className="flex flex-col gap-1">
+                        <div className="flex justify-between text-xs font-mono">
+                          <span className="text-on-surface truncate max-w-[130px]" title={entry.company}>{entry.company}</span>
+                          <span className="text-on-surface-variant">{entry.percentage}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-surface-bright/20 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full" 
+                            style={{ 
+                              width: `${entry.percentage}%`, 
+                              backgroundColor: ["#4ade80", "#60a5fa", "#a78bfa", "#f472b6", "#fbbf24"][i % 5] 
+                            }} 
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Bottom Section: Sentiment Heatmap */}
+      <div className="bg-surface/50 border border-surface-bright/30 p-4">
+        <div className="flex items-center gap-2 mb-4 border-b border-surface-bright/20 pb-2">
+          <Globe className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-mono uppercase font-bold text-on-surface tracking-wider">Company Sentiment Heatmap</h3>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+          {loading ? (
+            <div className="col-span-full py-8 text-center text-on-surface-variant font-mono text-xs">LOADING...</div>
+          ) : sentiment.map((s) => {
+            const isGood = s.sentiment_score > 10;
+            const isBad = s.sentiment_score < 5;
+            return (
+              <div 
+                key={s.company_name} 
+                className={`p-3 border flex flex-col justify-between h-[80px] ${
+                  isGood ? 'bg-status-success border-status-success' : 
+                  isBad ? 'bg-status-critical border-status-critical' : 
+                  'bg-status-elevated border-status-elevated'
+                }`}
+              >
+                <div className={`text-xs font-mono font-bold truncate ${isGood || isBad ? 'text-black' : 'text-black'}`} title={s.company_name}>{s.company_name}</div>
+                <div className={`text-xl font-mono font-bold ${isGood || isBad ? 'text-black' : 'text-black'}`}>
+                  {s.sentiment_score.toFixed(1)}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+    </div>
+  );
+}
