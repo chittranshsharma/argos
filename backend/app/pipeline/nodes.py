@@ -414,4 +414,24 @@ def store_graph_node(state: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def generate_report_node(state: dict) -> dict:
+    """Use Gemini to generate a markdown intelligence report."""
+    company_name = state["company_name"]
+    company_id = state["company_id"]
+    new_signals = state.get("new_signals", [])
+    key_findings = state.get("key_findings", [])
+    hiring_trends = state.get("hiring_trends", [])
+    tech_signals = state.get("tech_signals", [])
+
+    if not new_signals:
+        return {"report": f"# {company_name} — No new signals detected this cycle."}
+
+    # Format data for Gemini
+    signals_text = "\n".join(
+        f"- [{s.get('source')}] {s.get('title')}" for s in new_signals[:30]
+    )
+    findings_text = "\n".join(f"- {f}" for f in key_findings)
+    hiring_text = json.dumps(hiring_trends, indent=2) if hiring_trends else "None detected"
+    tech_text = json.dumps(tech_signals, indent=2) if tech_signals else "None detected"
+
+    prompt = f"""Generate a professional competitive intelligence report in Markdown format for {company_name}.
     return {}
