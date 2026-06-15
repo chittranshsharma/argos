@@ -28,4 +28,52 @@ def run_monitoring_cycle():
     Main monitoring cycle — runs every 6 hours.
     Gets all active companies, runs the monitoring pipeline for each.
     """
-    return None
+    logger.info("═" * 50)
+    logger.info("Starting monitoring cycle...")
+    start_time = datetime.now(timezone.utc)
+
+    try:
+        # Import here to avoid circular imports
+        from app.pipeline.graph import monitoring_graph
+
+        companies = get_all_companies()
+        logger.info(f"Monitoring {len(companies)} companies")
+
+        total_signals = 0
+
+        for company in companies:
+            company_name = company.get("name", "Unknown")
+            logger.info(f"─── Monitoring: {company_name} ───")
+
+            try:
+                initial_state = {
+                    "company_id": company["id"],
+                    "company_name": company_name,
+                    "company_data": company,
+                    "raw_signals": [],
+                    "new_signals": [],
+                    "analysis": {},
+                    "key_findings": [],
+                    "hiring_trends": [],
+                    "tech_signals": [],
+                    "report": "",
+                    "alerts": [],
+                    "entities": [],
+                    "relationships": [],
+                }
+
+                result = monitoring_graph.invoke(initial_state)
+                signal_count = len(result.get("new_signals", []))
+                total_signals += signal_count
+                logger.info(f"  ✓ {company_name}: {signal_count} new signals")
+
+            except Exception as e:
+                logger.error(f"  ✗ Monitoring failed for {company_name}: {e}")
+
+        elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
+        logger.info(f"Monitoring cycle complete: {total_signals} signals in {elapsed:.1f}s")
+        logger.info("═" * 50)
+
+    except Exception as e:
+        logger.error(f"Monitoring cycle failed: {e}")
+
