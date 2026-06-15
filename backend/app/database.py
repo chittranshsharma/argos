@@ -75,3 +75,6 @@ def update_company(company_id: str, updates: dict) -> dict:
         logger.error(f"Error updating company {company_id}: {e}")
         return {}
 
+
+def deactivate_company(company_id: str) -> dict:
+    return {}
