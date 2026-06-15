@@ -508,4 +508,63 @@ Make it concise, professional, and actionable. Use bullet points and bold for em
 # ═══════════════════════════════════════════════════════════
 
 def generate_alerts_node(state: dict) -> dict:
-    return {}
+    """Create alerts for high-importance new signals."""
+    new_signals = state.get("new_signals", [])
+    company_name = state["company_name"]
+    company_id = state["company_id"]
+
+    alerts = []
+
+    for signal in new_signals:
+        if signal.get("importance") == "high":
+            alert_data = {
+                "company_id": company_id,
+                "company_name": company_name,
+                "alert_type": signal.get("signal_type", "signal"),
+                "message": f"🚨 {company_name}: {signal.get('title', 'New signal detected')}",
+                "sent_via": [],
+                "is_sent": False,
+                "confidence_score": 88,
+                "impact_level": "High"
+            }
+            alerts.append(alert_data)
+
+            try:
+                save_alert(alert_data)
+            except Exception as e:
+                logger.error(f"Failed to save alert: {e}")
+
+    # Evaluate custom rules
+    try:
+        from app.analysis.rule_engine import RuleEngine
+        rule_engine = RuleEngine()
+        custom_alerts = rule_engine.evaluate_rules(
+            company_id,
+            new_signals
+        )
+        for alert in custom_alerts:
+            alert_data = {
+                "company_id": alert["company_id"],
+                "company_name": alert["company_name"],
+                "alert_type": "custom_rule",
+                "message": alert["message"],
+                "sent_via": [],
+                "is_sent": False,
+                "confidence_score": 95,
+                "impact_level": "Critical"
+            }
+            alerts.append(alert_data)
+            try:
+                save_alert(alert_data)
+            except Exception as e:
+                logger.error(f"Failed to save custom alert: {e}")
+    except Exception as e:
+        logger.error(f"Failed to evaluate custom rules: {e}")
+
+    logger.info(f"Generated {len(alerts)} alerts for {company_name}")
+    return {"alerts": alerts}
+
+
+# ═══════════════════════════════════════════════════════════
+# Node 7: Compute Analytics V1
+# ═══════════════════════════════════════════════════════════
