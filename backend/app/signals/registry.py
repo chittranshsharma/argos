@@ -61,4 +61,8 @@ class SignalSubtype(str, Enum):
     REDDIT_POST = "REDDIT_POST"
 
 class SignalStatus(str, Enum):
-    pass
+    """Lifecycle status of a signal."""
+    ACTIVE = "ACTIVE"
+    STALE = "STALE"
+    SUPERSEDED = "SUPERSEDED"
+    INVALIDATED = "INVALIDATED"
