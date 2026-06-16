@@ -1,0 +1,76 @@
+[
+  {
+    "id": "7e9c8cd9-246f-467b-9878-f68ee102d5f7",
+    "company_id": "ab4d1d45-dc2a-441f-8d85-c65e1d14cb99",
+    "type": "RISK",
+    "title": "OpenAI faces increased regulatory scrutiny and potential reputational damage",
+    "description": "OpenAI is under investigation by state attorneys general, which may impact its IPO plans and reputation.",
+    "confidence": 0.55,
+    "status": "ACTIVE",
+    "themes": [],
+    "created_at": "2026-06-16T11:35:20.62416+00:00",
+    "updated_at": "2026-06-16T11:35:20.62416+00:00",
+    "outcome": "PENDING",
+    "resolved_at": null,
+    "resolution_reason": null,
+    "predicted_time_horizon": "180_days",
+    "company_name": "OpenAI",
+    "evaluation": {
+      "grade": "A",
+      "specificity": 4,
+      "novelty": 2,
+      "actionability": 5,
+      "reasoning": "The hypothesis is actionable as it provides a clear direction for OpenAI's future, is somewhat specific as it mentions a particular investigation, but not extremely novel as regulatory scrutiny is a common theme in the tech industry. The high actionability score is due to the potential impact on OpenAI's IPO plans and reputation."
+    }
+  },
+  {
+    "id": "1d67b2ad-232b-4482-9fe6-7345485c993b",
+    "company_id": "ab4d1d45-dc2a-441f-8d85-c65e1d14cb99",
+    "type": "RISK",
+    "title": "OpenAI faces increased competition from Anthropic and potential price war",
+    "description": "OpenAI is facing increased competition from Anthropic, which is leading to a price war and potential drastic price cuts.",
+    "confidence": 0.6,
+    "status": "ACTIVE",
+    "themes": [],
+    "created_at": "2026-06-16T11:35:21.132078+00:00",
+    "updated_at": "2026-06-16T11:35:21.132078+00:00",
+    "outcome": "PENDING",
+    "resolved_at": null,
+    "resolution_reason": null,
+    "predicted_time_horizon": "90_days",
+    "company_name": "OpenAI",
+    "evaluation": {
+      "grade": "A",
+      "specificity": 4,
+      "novelty": 3,
+      "actionability": 5,
+      "reasoning": "The hypothesis is actionable as it suggests a potential price war, which can inform strategic decisions. It is specific as it mentions OpenAI and Anthropic, but not entirely novel as the concept of competition and price war is common in the industry. The confidence level of 0.6 suggests a moderate level of certainty, which is consistent with an 'A' grade."
+    }
+  },
+  {
+    "id": "d9c81f84-160c-4e07-82b3-76c00b5efd95",
+    "company_id": "ab4d1d45-dc2a-441f-8d85-c65e1d14cb99",
+    "type": "EXPANSION",
+    "title": "OpenAI expands its capabilities through acquisitions",
+    "description": "OpenAI is acquiring Ona to enhance its Codex product and expand its capabilities.",
+    "confidence": 0.5,
+    "status": "ACTIVE",
+    "themes": [
+      "ACQUISITION"
+    ],
+    "created_at": "2026-06-16T11:35:21.59939+00:00",
+    "updated_at": "2026-06-16T11:35:21.59939+00:00",
+    "outcome": "PENDING",
+    "resolved_at": null,
+    "resolution_reason": null,
+    "predicted_time_horizon": "90_days",
+    "company_name": "OpenAI",
+    "evaluation": {
+      "grade": "A",
+      "specificity": 5,
+      "novelty": 4,
+      "actionability": 5,
+      "reasoning": "The hypothesis is specific about OpenAI acquiring Ona to enhance its Codex product, indicating a clear strategic direction. It also has a moderate level of novelty as it suggests a new development in OpenAI's capabilities. The confidence level is 0.5, which suggests a high level of actionability as it implies a clear course of action for OpenAI. Overall, the hypothesis is an actionable strategic belief."
+    }
+  }
+]
