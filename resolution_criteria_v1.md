@@ -1,6 +1,6 @@
 # Resolution Criteria v1.1
 
-**Status:** PLANNED
+**Status:** READY_FOR_CALIBRATION
 **Version:** 1.1
 **Sprint:** 4.5
 **Scope:** EXPANSION (5 subtypes), RISK, PRODUCT_PIVOT, M&A
@@ -362,7 +362,7 @@ Once a resolution is recorded, it does not change. Subsequent events do not retr
 
 - Familiar with the company being reviewed.
 - Has read the full Resolution Criteria v1.1 document.
-- Has completed calibration set of 5 sample resolutions (provided in separate file, not in this doc) with agreement to gold-standard labels.
+- Has completed the calibration set of 5 sample resolutions (provided in separate file, not in this doc), with results evaluated under the calibration agreement methodology.
 
 ### 6.2 Review process
 
@@ -403,7 +403,7 @@ Once a resolution is recorded, it does not change. Subsequent events do not retr
 ### 6.6 Calibration maintenance
 
 - Every 20 resolutions, all reviewers re-do 5-sample calibration set.
-- Drift >15% from gold-standard = retraining required before resuming.
+- Failure to meet calibration agreement requirements = retraining required before resuming.
 - Reviewer agreement rate tracked continuously. Below 85% over rolling 50 resolutions = process review.
 
 ---

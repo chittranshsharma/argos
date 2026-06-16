@@ -1,6 +1,6 @@
 # Scoring Template — Calibration v1.0
 
-**Status:** PLANNED
+**Status:** READY_FOR_CALIBRATION
 **Sprint:** 4.5
 **Companion:** calibration_set_v1.md, reviewer_instructions.md
 **Reference:** resolution_criteria_v1.md (v1.1)
@@ -148,7 +148,7 @@ Signature: _________________  Date: _________________
 - announced: _________________ (or null)
 - closed: _________________ (or null)
 
-**Specific reasoning required:** did `announced` fire within horizon (2022-01-18 fires before 2023-01-10 horizon end → yes)? Per v1.1 §4.2, does `announced` trigger CONFIRM even though `closed` is after horizon?
+**Specific reasoning required:** compare each M&A state timestamp against the hypothesis horizon. Apply v1.1 §4.2 through §4.5 to determine which state, if any, resolves the hypothesis.
 > _________________
 
 ---
@@ -180,13 +180,7 @@ Signature: _________________  Date: _________________
 
 **Criteria version:** v1.1
 
-**Specific reasoning required:** This is the calibration-critical case. Two interpretations:
-- **Interpretation A (CONFIRM):** "3 new European markets" was a quantitative claim. Stripe hit 3 (France, Germany, Italy). All continental EU.
-- **Interpretation B (PARTIAL):** "With at least one being a country in continental EU" implies specific market expectations. Stripe's chosen markets differ from typical analyst expectations.
-
-Apply v1.1 §1.1 (GEO_EXPANSION) Partial definition strictly: "wrong scale (predicted 3 offices → opened 1)" — scale is exact here. Is the case CONFIRM (scale exact, regions within stated category) or PARTIAL (region set differs from unspecified expectations)?
-
-Document your interpretation:
+**Specific reasoning required:** apply v1.1 §1.1 to the hypothesis text, selected window, event timeline, and source evidence. Document your type assignment, window selection, market count, and scale interpretation.
 > _________________
 
 ---

@@ -298,14 +298,29 @@ def correlate_signals_node(state: dict) -> dict:
             logger.info(f"Generated {len(added_correlations)} macro-level correlations for {company_name}")
             new_signals.extend(added_correlations)
             
-            # TRIGGER A: Correlation fires -> generate hypotheses
+        # BUGFIX: The correlator rules are extremely strict, resulting in added_correlations often being empty.
+        # This completely halted the Hypothesis Engine pipeline.
+        # Now, we also trigger hypothesis generation if there are high importance signals.
+        high_importance_signals = []
+        for s in new_signals:
+            imp = s.get("importance", 0.0)
+            try:
+                if float(imp) >= 5.0:
+                    high_importance_signals.append(s)
+            except (ValueError, TypeError):
+                pass
+        
+            
+        if added_correlations or high_importance_signals:
+            # TRIGGER A: Correlation or High Importance signals fire -> generate hypotheses
             try:
                 from app.analysis.hypothesis_engine import HypothesisEngine
+                trigger_reason = "Macro-correlation detected" if added_correlations else "High importance signals detected"
                 HypothesisEngine().generate_hypotheses(
                     company_id=company_id, 
                     company_name=company_name, 
-                    recent_signals=historical_signals + added_correlations,
-                    trigger_reason="Macro-correlation detected"
+                    recent_signals=historical_signals + added_correlations + high_importance_signals,
+                    trigger_reason=trigger_reason
                 )
             except Exception as he:
                 logger.error(f"Failed to generate hypotheses: {he}")

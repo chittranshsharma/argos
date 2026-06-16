@@ -1,6 +1,6 @@
 # Calibration Report v1.0
 
-**Status:** PLANNED — awaiting real reviewer data
+**Status:** READY_FOR_CALIBRATION — template awaiting real reviewer data
 **Sprint:** 4.5
 **Date of report:** _________________
 **Calibration lead:** _________________

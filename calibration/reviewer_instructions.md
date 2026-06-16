@@ -1,6 +1,6 @@
 # Reviewer Instructions — Calibration v1.0
 
-**Status:** PLANNED
+**Status:** READY_FOR_CALIBRATION
 **Sprint:** 4.5
 **Companion:** calibration_set_v1.md, scoring_template.md
 **Reference:** resolution_criteria_v1.md (v1.1) — the only valid reference document
@@ -89,7 +89,7 @@ Apply v1.1 §1.1 strictly. Source requirement: ≥1 Primary or ≥2 Secondary.
 ### Case 2 — RISK (OpenAI Executive Departure)
 Apply v1.1 §2.1 (executive departure subcategory). Source requirement: ≥1 Primary or ≥2 Secondary.
 
-Timing consideration: 2023-11-17 event vs 2023-11-13 horizon end. 4 days past horizon = 4.4% of 90-day window. v1.1 §2.3 PARTIAL trigger requires ">50% of horizon" — 4 days does not meet this threshold. Whether the event qualifies as "within horizon" per v1.1 §2.1 is a strict-reading question. Apply v1.1 as written. Do not infer a preferred resolution.
+Timing process: identify the horizon end and the event date. Apply v1.1 §2.1 ("within horizon") and v1.1 §2.3 ("wrong timing by >50% of horizon") as written. Document your interpretation and final resolution without inferring any preferred answer.
 
 ### Case 3 — PRODUCT_PIVOT (Twitter → X)
 Apply v1.1 §3.1 strictly. The decision test from v1.1 taxonomy overview applies: did existing business cease to be core, or did company category change?
@@ -99,18 +99,18 @@ Source requirement: ≥1 Primary + ≥1 Secondary, OR ≥3 independent Secondary
 ### Case 4 — M&A (Microsoft / Activision Blizzard)
 Apply v1.1 §4 strictly. Use the 4-state model.
 
-Critical: 2022-01-18 is the announcement date. 2022-01-10 is the simulated hypothesis creation date. 2023-01-10 is the horizon end. 2023-10-13 is the close date. Confirm should fire on `announced` (2022-01-18), per v1.1 §4.2.
+Critical dates to evaluate: 2022-01-18 is the announcement date. 2022-01-10 is the simulated hypothesis creation date. 2023-01-10 is the horizon end. 2023-10-13 is the close date. Apply v1.1 §4.2 to determine whether `announced` or `closed` resolves the hypothesis.
 
 Source requirement: Primary (announcement or formal filing) for full confirm.
 
 ### Case 5 — AMBIGUOUS (Stripe 3 EU Markets)
-This case is the calibration-critical test. It is intentionally borderline.
+Apply v1.1 §1.1 strictly to the hypothesis text and ground-truth timeline.
 
-The hypothesis text specifies "3 European markets" — you must interpret this against the actual outcome. Apply v1.1 §1.1 Partial definition: "wrong scale (predicted 3 offices → opened 1)" — does scale being exactly 3 = CONFIRM, or does the qualitative nature of "European markets" being different than what most readers would have inferred = PARTIAL?
+The hypothesis text specifies "3 European markets" — you must interpret this against the actual outcome. Apply v1.1 definitions, determine the appropriate resolution class, and document your reasoning.
 
 The ground truth timeline tells you what actually happened. Your job is to resolve against v1.1 rules, not to debate whether the original prediction was well-stated.
 
-There is no "correct" answer pre-determined. The two reviewers may legitimately disagree on this case. The metric measures whether they disagree in a structured way consistent with v1.1 interpretation.
+Document any ambiguity in the hypothesis text, type assignment, window selection, or scale interpretation. The metric measures whether reviewers apply v1.1 consistently.
 
 ---
 

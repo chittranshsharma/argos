@@ -1,6 +1,6 @@
 # Agreement Calculation Methodology
 
-**Status:** PLANNED
+**Status:** READY_FOR_CALIBRATION
 **Sprint:** 4.5
 **Companion:** calibration_set_v1.md, scoring_template.md, reviewer_instructions.md
 **Reference:** resolution_criteria_v1.md (v1.1)
@@ -185,7 +185,8 @@ Step-by-step:
 
 ```yaml
 overall_agreement_pct: <0-100>
-agreement_threshold_met: <true|false>  # true if >=85%
+exact_agreement_count: <0-5>
+verdict: <PASS|BORDERLINE|FAIL>  # PASS=5/5, BORDERLINE=4/5, FAIL=<=3/5 exact agreement
 cases:
   - case_id: CAL-001
     reviewer_a_class: <class>
@@ -222,8 +223,7 @@ diagnostics:
   source_agreement: <full|partial|none per case>
   reasoning_agreement: <convergent|divergent|conflicting per case>
   unresolvable_flags: <count>
-verdict: <pass|fail>
-next_action: <proceed to 20-company pass | pause for v1.2 review>
+next_action: <proceed to 20-company pass | proceed with flagged case and targeted review | pause for v1.2 review>
 ```
 
 ---

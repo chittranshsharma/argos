@@ -74,8 +74,7 @@ class WatchlistScorer:
                 # Update hypothesis (this will also create a snapshot via DB hook)
                 update_hypothesis(hyp["id"], {
                     "confidence": new_conf,
-                    "status": status,
-                    "last_evidence_at": datetime.now(timezone.utc).isoformat()
+                    "status": status
                 })
                 
                 # Check for Contradiction (Impact <= -0.15 AND Old Confidence >= 0.75)

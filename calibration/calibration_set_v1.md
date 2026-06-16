@@ -1,6 +1,6 @@
 # Calibration Set v1.0
 
-**Status:** PLANNED
+**Status:** READY_FOR_CALIBRATION
 **Sprint:** 4.5
 **Companion:** reviewer_instructions.md, scoring_template.md
 **Reference:** resolution_criteria_v1.md (v1.1)
@@ -49,17 +49,13 @@ You may consult additional public sources. Document them in the scoring template
 
 Apply v1.1 §1.1:
 - **Confirm:** new office, new region hiring, partnership with local distributor, public announcement of expansion into named market. ≥1 Primary or ≥2 independent Secondary.
-- **Partial:** wrong scale, wrong scope (Dublin vs. broader EU), or timing off >50% of horizon (90 days late is 50% — May 19 is ~4 months after creation, ~123 days, ~68% of horizon — does this count as "timing off >50%"?).
+- **Partial:** wrong scale, wrong scope (Dublin vs. broader EU), or timing off >50% of horizon.
 - **Reject:** horizon expires with no observable signal, or company publicly retreats.
-- **EXPIRED:** horizon (2023-07-14) expires with no signal. **Not applicable here — event fired 2023-05-19, before horizon end.**
+- **EXPIRED:** horizon expires with no observable signal.
 
 ### Notes for Reviewer
 
-This is a **control CONFIRM case**. The event fired within the prediction window (2023-05-19, before horizon end 2023-07-14). Per v1.1 §1.1.1 confirm conditions, the new office and EMEA HQ public announcement meet the bar with Primary source (Anthropic blog) and multiple Secondary sources (Reuters, Bloomberg, TechCrunch, FT).
-
-v1.1 §1.1.3 PARTIAL trigger "wrong timing by >50% of horizon" refers to **timing deviation from the prediction window**, not "elapsed fraction of horizon at the time of event." Since the event occurred within the window (before 2023-07-14), the PARTIAL timing trigger does not apply.
-
-This case is included to verify that reviewers apply the control-resolution path correctly. Expected resolution: CONFIRM.
+Apply the v1.1 §1.1 rule text to the hypothesis, timeline, and sources. Document how you handled timing, scope, scale, and source sufficiency.
 
 ---
 
@@ -101,20 +97,9 @@ This case is included to verify that reviewers apply the control-resolution path
 - 4 days = 4.4% of 90-day horizon. Under v1.1 §2.3 PARTIAL trigger (">50% of horizon"). 4 days is **not** >50%.
 - 4 days past horizon is **not** "within horizon" per v1.1 §2.1 ("Any of the following within horizon").
 
-Two valid interpretations:
-- **Interpretation A (REJECT):** Event occurred 4 days after horizon end. Strict reading of "within horizon" → REJECT.
-- **Interpretation B (PARTIAL):** v1.1 §2.3 PARTIAL "wrong timing by >50% of horizon" — 4 days is not >50%. But PARTIAL may apply for "event occurred just outside horizon" reasoning. v1.1 does not explicitly cover this case.
-- **Interpretation C (EXPIRED):** Horizon passed with no observable signal at 2023-11-13. By 2023-11-13, the departure had not yet happened. Treat as EXPIRED. **Note:** EXPIRED is treated as REJECT in headline metrics per v1.1 §5.1.
-
 ### Notes for Reviewer
 
-This is a deliberately tight-edge test. The "right" resolution depends on v1.1 strictness.
-
-- If v1.1 §2.1 "within horizon" is read strictly, the answer is REJECT or EXPIRED.
-- If v1.1 §2.3 PARTIAL "wrong timing by >50%" is the only PARTIAL trigger for RISK, then 4 days does not trigger PARTIAL — meaning the answer is REJECT/EXPIRED, not PARTIAL.
-- If the v1.1 author intended "near-horizon event" to count as PARTIAL, that intent is not stated explicitly in v1.1.
-
-**Note for calibration:** Document your interpretation explicitly. This is a v1.1 ambiguity test.
+Apply v1.1 §2.1, §2.3, §2.4, and §5.1. Document your interpretation of the horizon boundary and any timing-related rule application.
 
 ---
 
@@ -158,19 +143,12 @@ Apply v1.1 §3.1 + decision test from taxonomy overview:
 - **PRODUCT_PIVOT triggers if:** existing business ceases to be core, OR company category changes.
 - **Twitter → X:** social network (the product) continued operating. Brand and corporate name changed. "X" branded as "everything app" / "super app" but Twitter the social network remained the dominant product throughout the horizon.
 
-Two valid interpretations:
-- **Interpretation A (CONFIRM):** "Primary product category changes" — X branding explicitly positioned the company as broader than social (financial services, communications, AI). CEO statements support this. Per v1.1 §3.1 ("Major repositioning: company changes tagline, ICP messaging"), CONFIRM.
-- **Interpretation B (PARTIAL):** "Strategic reorientation such that existing business ceases to be core" — Twitter the social network remained core. Brand changed, but product category did not. The decision test (existing business ceases to be core) is not met. PARTIAL for direction correct, scope not full.
-- **Interpretation C (REJECT):** Twitter the social network continued as core. Existing business did not cease to be core. No category change in product sense. Strict reading → REJECT.
-
 ### Notes for Reviewer
 
-This is a v1.1 decision-test test. The decision test from the taxonomy overview is the key:
+Apply the decision test from the taxonomy overview:
 > "Existing business ceases to be core → PRODUCT_PIVOT."
 
-Twitter the social network did not cease to be core. Strict reading → not PRODUCT_PIVOT by decision test. But v1.1 §3.1 also lists "Major repositioning" as a confirm trigger, which may apply even when the existing product is not abandoned.
-
-**Note for calibration:** This is a v1.1 internal-tension test. v1.1 §3.1 ("major repositioning") and the taxonomy decision test (existing business ceases to be core) may conflict. Document your interpretation. This is the highest-value calibration case for surfacing v1.1 weaknesses.
+Also apply v1.1 §3.1 language on major repositioning. Document how you reconciled the decision test, product continuity, and category-change language.
 
 ---
 
@@ -215,18 +193,14 @@ Twitter the social network did not cease to be core. Strict reading → not PROD
 Apply v1.1 §4 strictly with 4-state model:
 - **discussion_detected:** Likely October 2021 (reports of Microsoft interest). Within horizon start. May be relevant.
 - **LOI_detected:** Not publicly reported with date. Mark null or discuss.
-- **announced:** 2022-01-18. **Within horizon (2023-01-10 end).** Triggers CONFIRM per v1.1 §4.2.
-- **closed:** 2023-10-13. **After horizon end.** Does not affect resolution since `announced` already triggered.
+- **announced:** 2022-01-18.
+- **closed:** 2023-10-13.
 
-**Resolution:** Should be CONFIRM, since `announced` fired within horizon.
-
-Source requirement: Primary (announcement) for full confirm. Multiple Primary sources present.
+Source requirement: Primary (announcement or formal filing) for full confirm.
 
 ### Notes for Reviewer
 
-This is a "clean" M&A case — the v1.1 4-state model applies cleanly. Expected resolution: CONFIRM.
-
-Use this case to validate that the 4-state tracking works as designed. Record all 4 timestamps, even if some are null.
+Record all 4 timestamps, even if some are null. Apply v1.1 §4.2 through §4.5 to determine which state, if any, resolves the hypothesis within the horizon.
 
 ---
 
@@ -270,50 +244,40 @@ Hypothesis says "3 new European Union markets." v1.1 has two relevant types:
 
 Strict reading: GEO_EXPANSION, 180-day window. Horizon end: **2023-06-30** (not 2023-09-28 as initially written).
 
-This changes the resolution. Let us apply both:
+Evaluate the applicable window before assigning a resolution:
 
 **If 180-day window (2023-06-30):**
-- Italy (2023-02-15): within window ✓
-- France (2023-05-09): within window ✓
-- Greece (2023-07-19): outside window ✗
-- Within window: 2 of 3. v1.1 §1.1.3 PARTIAL ("wrong scale: predicted 3 → opened 2" — but 2 of 3 is borderline).
+- Italy (2023-02-15)
+- France (2023-05-09)
+- Greece (2023-07-19)
 
 **If 270-day window (2023-09-28):**
-- Italy, France, Greece: all within window ✓
-- 3 of 3 confirmed.
-- v1.1 §1.1.1 CONFIRM.
+- Italy (2023-02-15)
+- France (2023-05-09)
+- Greece (2023-07-19)
 
 **Question 2 — what counts as "new":**
-Germany was expanded in 2022, before hypothesis creation. Not new in 2023. Italy, France, Greece in 2023 = new.
-
-Two interpretations:
-- **Interpretation A (CONFIRM via 270d):** 3 markets launched within 270 days. v1.1 §1.1.1 CONFIRM.
-- **Interpretation B (PARTIAL via 180d):** Only 2 markets launched within 180 days. v1.1 §1.1.3 PARTIAL ("wrong scale: predicted 3 → got 2").
-- **Interpretation C (CONFIRM via 180d, different market set):** If "European Union markets" was interpreted as continental EU specifically, and Italy + France are confirmed continental EU but Greece is borderline (Greece is EU but some readers might interpret as different region), then 2 of 3 confirmed → PARTIAL.
+Germany was expanded in 2022, before hypothesis creation. Italy, France, and Greece appear in the 2023 event timeline above. Apply v1.1 to determine which markets count as "new" for this hypothesis.
 
 ### Notes for Reviewer
-
-This is the **calibration-critical case** for testing PARTIAL vs CONFIRM interpretation.
 
 Key v1.1 questions:
 1. Should the reviewer independently select the type (and thus the window) from the hypothesis text, or accept the type assigned in the calibration case?
 2. If the hypothesis text is ambiguous between "3 markets" and "3 specific markets" (the latter implying particular analyst expectations), how should this be resolved?
-3. Is the v1.1 §1.1.3 PARTIAL trigger "wrong scale (predicted 3 offices → opened 1)" interpreted as strict numeric (3 ≠ 2 triggers PARTIAL) or as rough magnitude (within 1 unit = scale approximately correct)?
+3. How should v1.1 §1.1.3 "wrong scale" be applied when the hypothesis predicts a count of markets?
 
-**Note for calibration:** This case is designed to surface PARTIAL vs CONFIRM interpretation differences. The "right" answer depends on v1.1 strictness on numeric scale, which v1.1 does not explicitly address. The two reviewers may legitimately disagree, and that disagreement is the calibration data we want.
+Document your type assignment, window selection, market count, and scale interpretation.
 
 ---
 
 ## Summary Table
 
-| Case | Type | Horizon | Expected resolution (calibration lead hypothesis) |
-|------|------|---------|--------------------------------------------------|
-| 1 | GEO_EXPANSION | 180d | CONFIRM (control case — event within window, Primary + multiple Secondary) |
-| 2 | RISK | 90d | REJECT/EXPIRED (4 days past horizon) OR PARTIAL (if v1.1 §2.3 "wrong timing" includes near-misses) |
-| 3 | PRODUCT_PIVOT | 365d | CONFIRM (repositioning is §3.1 trigger) OR PARTIAL (Twitter product continued, decision test fails) OR REJECT (strict decision test) |
-| 4 | MA | 365d | CONFIRM (announced 2022-01-18 within horizon) |
-| 5 | GEO_EXPANSION | 180d or 270d | CONFIRM (3 of 3 in 270d) OR PARTIAL (2 of 3 in 180d strict numeric) |
+| Case | Type | Horizon |
+|------|------|---------|
+| 1 | GEO_EXPANSION | 180d |
+| 2 | RISK | 90d |
+| 3 | PRODUCT_PIVOT | 365d |
+| 4 | MA | 365d |
+| 5 | GEO_EXPANSION | 180d or 270d |
 
-**Calibration objective:** measure whether reviewers converge on these (or other) interpretations. Disagreement is expected on Cases 2, 3, and 5. Cases 1 and 4 are control CONFIRM cases — reviewer convergence on CONFIRM is the calibration data we want for those.
-
-**Note for calibration lead:** "Expected resolution" rows are the calibration lead's pre-test hypothesis for diagnostic purposes only. They are not communicated to reviewers. Reviewers apply v1.1 independently.
+**Calibration objective:** measure whether reviewers independently apply v1.1 to the same facts and converge on the same resolution classes.
