@@ -19,6 +19,8 @@ from app.database import (
     deactivate_company,
     get_signals,
     get_all_signals_feed,
+    get_pending_signals,
+    reject_signal,
     get_reports,
     get_all_reports,
     get_signals_today_count,
@@ -89,6 +91,9 @@ class CompanyResponse(BaseModel):
     added_at: Optional[str] = None
     last_monitored: Optional[str] = None
     is_active: Optional[bool] = True
+
+class RejectSignalRequest(BaseModel):
+    reason: str
 
 
 # ── Background task helpers ─────────────────────────────────
@@ -449,6 +454,36 @@ async def get_company_signals(company_id: str, limit: int = 50, source: str = "a
     signals = get_signals(company_id, limit=limit, source=source)
     return {"signals": signals}
 
+
+@app.get("/api/signals/feed")
+def api_get_signals_feed(limit: int = 100, source: str = None, importance: str = None):
+    return get_all_signals_feed(limit=limit, source=source, importance=importance)
+
+@app.get("/api/admin/signals/pending")
+def api_get_pending_signals():
+    """Get all signals that need manual review."""
+    return get_pending_signals()
+
+@app.post("/api/admin/signals/{signal_id}/reject")
+def api_reject_signal(signal_id: str, req: RejectSignalRequest):
+    """Mark a signal as rejected."""
+    reject_signal(signal_id, req.reason)
+    return {"status": "success"}
+
+@app.post("/api/admin/signals/{signal_id}/approve")
+def api_approve_signal(signal_id: str):
+    """Mark a pending signal as auto_approved."""
+    # We can just use the database's update raw_data trick to approve it
+    from app.database import get_supabase_client
+    client = get_supabase_client()
+    response = client.table("signals").select("*").eq("id", signal_id).single().execute()
+    if response.data:
+        raw_data = response.data.get("raw_data", {})
+        payload = raw_data.get("payload", {})
+        payload["review_status"] = "auto_approved"
+        raw_data["payload"] = payload
+        client.table("signals").update({"raw_data": raw_data}).eq("id", signal_id).execute()
+    return {"status": "success"}
 
 @app.get("/signals/feed")
 async def get_signal_feed(

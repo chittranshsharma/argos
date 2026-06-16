@@ -105,6 +105,34 @@ class GraphDB:
         except Exception as e:
             logger.error(f"Neo4j merge relationship error: {e}")
 
+    def boost_relationship_weight(self, company_name: str, rel_type: str, increment: float = 0.3) -> None:
+        """
+        Boost the weight of existing relationships of a specific type for a company.
+        Used by the SignalCorrelator to adjust graph confidence without creating new facts.
+        """
+        driver = self._get_driver()
+        if not driver:
+            return
+
+        rel_type = rel_type.upper().replace(" ", "_").replace("-", "_")
+        
+        query = f"""
+        MATCH (a)-[r:{rel_type}]->(b)
+        WHERE r.company_context = $company_name
+        SET r.weight = coalesce(r.weight, 1.0) + $increment,
+            r.updated_at = datetime()
+        RETURN count(r) as updated_count
+        """
+        
+        try:
+            with driver.session(database=NEO4J_DATABASE) as session:
+                result = session.run(query, company_name=company_name, increment=increment)
+                record = result.single()
+                if record and record["updated_count"] > 0:
+                    logger.info(f"Boosted weight for {record['updated_count']} {rel_type} edges for {company_name}")
+        except Exception as e:
+            logger.error(f"Neo4j boost relationship error: {e}")
+
     def get_company_graph(self, company_name: str) -> dict:
         """
         Get all nodes and relationships associated with a company
@@ -129,7 +157,8 @@ class GraphDB:
         collect(DISTINCT {
             source: n.name,
             target: m.name,
-            relation: type(r)
+            relation: type(r),
+            weight: coalesce(r.weight, 1.0)
         }) AS links
         """
 

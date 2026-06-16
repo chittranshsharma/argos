@@ -8,7 +8,8 @@ import {
   Network, 
   LineChart, 
   FileText, 
-  Plus
+  Plus,
+  ShieldAlert
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,10 @@ const ANALYSIS_ITEMS = [
   { href: "/graph", label: "Knowledge Graph", icon: Network },
   { href: "/analytics", label: "Analytics", icon: LineChart },
   { href: "/reports", label: "Reports", icon: FileText },
+];
+
+const ADMIN_ITEMS = [
+  { href: "/admin/intelligence-review", label: "Review Queue", icon: ShieldAlert },
 ];
 
 
@@ -105,6 +110,31 @@ export function SideNavBar() {
           })}
         </nav>
 
+        <nav className="flex flex-col gap-1 mt-4">
+          <div className="px-3 pb-2 font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+            Administration
+          </div>
+          {ADMIN_ITEMS.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const Icon = item.icon;
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  isActive 
+                    ? "bg-red-900/30 text-red-400 border-l-2 border-red-500 rounded-l-none" 
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-white/5"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
       </div>
     </aside>

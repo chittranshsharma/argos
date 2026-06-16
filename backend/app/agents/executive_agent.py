@@ -67,32 +67,68 @@ class ExecutiveAgent:
         for key, events in dedup_map.items():
             base_event = events[0]
             source_count = len(events)
-            confidence = min(0.70 + math.log(source_count) * 0.15 if source_count > 0 else 0.70, 0.99)
+            source_urls = list(set([e.get("url") for e in events if e.get("url")]))
             
+            payload = {
+                "person": base_event.get("person", "").strip(),
+                "role": base_event.get("role", "").strip(),
+                "movement_type": base_event.get("movement_type", "").strip(),
+                "previous_company": base_event.get("previous_company", "").strip(),
+                "new_company": base_event.get("new_company", "").strip(),
+                "effective_date": base_event.get("effective_date", "").strip(),
+                "reason_for_leaving": base_event.get("reason_for_leaving", "").strip(),
+                "source_count": source_count
+            }
+            
+            # FINAL PERSISTENCE GUARD - SIGNAL VALIDATION V2
+            if not payload.get("person") or not payload.get("role"):
+                logger.warning(f"ExecutiveAgent rejected signal due to missing person/role: {json.dumps(payload)}")
+                continue
+                
+            # Prevent hallucinated company names as person names
+            if payload.get("person").lower() in company_name.lower() or company_name.lower() in payload.get("person").lower():
+                logger.warning(f"ExecutiveAgent rejected signal due to hallucinated person name (matches company): {json.dumps(payload)}")
+                continue
+                
+            allowed_movements = {"appointed", "joined", "hired", "promoted", "resigned", "departed", "stepped_down", "board_appointed", "board_departed"}
+            if str(payload.get("movement_type")).lower() not in allowed_movements:
+                logger.warning(f"ExecutiveAgent rejected signal due to invalid movement_type: {json.dumps(payload)}")
+                continue
+
+            # Confidence Calibration
+            from app.analysis.reliability import calculate_weighted_confidence
+            
+            # Base extraction score is high if we have a clean movement and person/role
+            extraction_score = 0.9 if payload.get("movement_type") and payload.get("role") else 0.6
+            evidence_score = 0.8 # Executive events are usually definitive if found
+            
+            confidence, reasoning = calculate_weighted_confidence(
+                source_urls=source_urls,
+                source_count=source_count,
+                evidence_score=evidence_score,
+                extraction_score=extraction_score
+            )
+            
+            # Add reasoning to payload
+            reasoning["named_entities"] = True
+            payload["confidence"] = confidence
+            payload["confidence_reasoning"] = reasoning
+
             signals.append({
                 "company_id": company_id,
                 "company_name": company_name,
                 "signal_type": SignalType.EXECUTIVE,
                 "subtype": base_event.get("subtype", "LEADERSHIP_SURGE"),
-                "title": f"{base_event.get('person')} {base_event.get('movement_type')} as {base_event.get('role')}",
-                "content": base_event.get("reason_for_leaving", f"Executive movement detected: {base_event.get('movement_type')}."),
+                "title": f"{payload['person']} {payload['movement_type']} as {payload['role']}",
+                "content": base_event.get("reason_for_leaving", f"Executive movement detected: {payload['movement_type']}."),
                 "url": base_event.get("url"),
-                "payload": {
-                    "person": base_event.get("person"),
-                    "role": base_event.get("role"),
-                    "movement_type": base_event.get("movement_type"),
-                    "previous_company": base_event.get("previous_company"),
-                    "new_company": base_event.get("new_company"),
-                    "effective_date": base_event.get("effective_date"),
-                    "reason_for_leaving": base_event.get("reason_for_leaving"),
-                    "source_count": source_count,
-                    "confidence": round(confidence, 2)
-                },
+                "payload": payload,
                 "agent": "ExecutiveAgent",
-                "extraction_model": "groq-llama-3"
+                "extraction_model": "groq-llama-3",
+                "review_status": reasoning["review_status"]
             })
             
-        logger.info(f"ExecutiveAgent collected {len(signals)} deduplicated signals for {company_name}")
+        logger.info(f"ExecutiveAgent collected {len(signals)} validated signals for {company_name}")
         return signals
 
     def _fetch_articles(self, company_name: str) -> list[dict]:
@@ -227,9 +263,14 @@ If no events are found, return []."""
                 events = json.loads(match.group())
                 valid_events = []
                 invalid_moves = ["current", "quoted", "mentioned", "spoke", "commented", "said", "warned", "believes", ""]
+                allowed_movements = {"appointed", "joined", "hired", "promoted", "resigned", "departed", "stepped_down", "board_appointed", "board_departed"}
                 for e in events:
                     move = e.get("movement_type", "").lower().strip()
-                    if move in invalid_moves:
+                    if move in invalid_moves or move not in allowed_movements:
+                        logger.warning({"reason": "missing_or_invalid_movement_keyword", "url": url, "llm_output": e})
+                        continue
+                    if not e.get("person") or not e.get("role"):
+                        logger.warning({"reason": "missing_person_or_role", "url": url, "llm_output": e})
                         continue
                     e["url"] = url
                     valid_events.append(e)

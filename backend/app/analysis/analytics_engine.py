@@ -99,9 +99,33 @@ class AnalyticsEngine:
         except Exception:
             report_activity_score = 0
 
+        # 7. Correlation Activity (Max 9 points)
+        try:
+            res = self.client.table("signals").select("subtype").eq("company_id", company_id).eq("signal_type", "CORRELATION").gte("collected_at", thirty_days_ago).execute()
+            correlation_score = 0.0
+            for sig in (res.data or []):
+                st = sig.get("subtype", "").upper()
+                if st == "STRATEGIC_EXPANSION":
+                    correlation_score += 4.0
+                elif st == "COMPETITIVE_ACCELERATION":
+                    correlation_score += 4.0
+                elif st == "ORGANIZATIONAL_RISK":
+                    correlation_score += 5.0
+                elif st == "MARKET_CONSOLIDATION":
+                    correlation_score += 4.0
+                elif st == "LEADERSHIP_REORGANIZATION":
+                    correlation_score += 3.0
+                elif st == "GEOGRAPHIC_EXPANSION":
+                    correlation_score += 3.0
+                else:
+                    correlation_score += 2.0
+            correlation_score = min(9.0, correlation_score)
+        except Exception:
+            correlation_score = 0.0
+
         total_score = round(
             signal_volume_score + hiring_velocity_score + funding_activity_score +
-            sentiment_score + executive_events_score + report_activity_score, 1
+            sentiment_score + executive_events_score + report_activity_score + correlation_score, 1
         )
 
         payload = {
@@ -111,6 +135,7 @@ class AnalyticsEngine:
             "sentiment": round(sentiment_score, 1),
             "executive_events": round(executive_events_score, 1),
             "report_activity": round(report_activity_score, 1),
+            "correlation_activity": round(correlation_score, 1),
             "total": total_score
         }
 

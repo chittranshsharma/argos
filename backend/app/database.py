@@ -139,10 +139,48 @@ def get_signals(company_id: str, limit: int = 50, source: str = None) -> list:
             for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
                 if key in raw:
                     s[key] = raw[key]
+        
+        # Filter out rejected signals so they don't appear in the company feed
+        signals = [s for s in signals if s.get("payload", {}).get("review_status") != "rejected"]
         return signals
     except Exception as e:
         logger.error(f"Error getting signals: {e}")
         return []
+
+def reject_signal(signal_id: str, reason: str) -> None:
+    """Mark a signal as rejected and log the reason in rejected_signals table."""
+    try:
+        client = get_supabase_client()
+        
+        # First get the signal to move its raw_data
+        response = client.table("signals").select("*").eq("id", signal_id).single().execute()
+        if not response.data:
+            return
+            
+        signal = response.data
+        raw_data = signal.get("raw_data", {})
+        payload = raw_data.get("payload", {})
+        
+        # Update payload status
+        payload["review_status"] = "rejected"
+        raw_data["payload"] = payload
+        
+        # Update the signal
+        client.table("signals").update({"raw_data": raw_data}).eq("id", signal_id).execute()
+        
+        # Log to rejected_signals for future training dataset
+        try:
+            client.table("rejected_signals").insert({
+                "signal_id": signal_id,
+                "agent": raw_data.get("agent", "unknown"),
+                "reason": reason,
+                "payload": payload
+            }).execute()
+        except Exception as inner_e:
+            logger.warning(f"Failed to log to rejected_signals table (maybe it doesn't exist yet): {inner_e}")
+            
+    except Exception as e:
+        logger.error(f"Error rejecting signal {signal_id}: {e}")
 
 
 def get_new_signals(company_id: str) -> list:
@@ -187,9 +225,33 @@ def get_all_signals_feed(limit: int = 100, source: str = None,
             for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
                 if key in raw:
                     s[key] = raw[key]
+                    
+        # Filter out rejected signals
+        signals = [s for s in signals if s.get("payload", {}).get("review_status") != "rejected"]
         return signals
     except Exception as e:
         logger.error(f"Error getting signals feed: {e}")
+        return []
+
+def get_pending_signals() -> list:
+    """Get signals that are in pending review status."""
+    try:
+        client = get_supabase_client()
+        response = client.table("signals").select("*").order("collected_at", desc=True).limit(200).execute()
+        signals = response.data or []
+        pending = []
+        for s in signals:
+            raw = s.get("raw_data", {})
+            for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+                if key in raw:
+                    s[key] = raw[key]
+            
+            payload = s.get("payload", {})
+            if payload.get("review_status") == "pending":
+                pending.append(s)
+        return pending
+    except Exception as e:
+        logger.error(f"Error getting pending signals: {e}")
         return []
 
 

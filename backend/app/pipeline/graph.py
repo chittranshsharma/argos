@@ -9,6 +9,7 @@ from app.pipeline.state import AgentState
 from app.pipeline.nodes import (
     collect_signals_node,
     filter_new_signals_node,
+    correlate_signals_node,
     analyze_signals_node,
     compute_analytics_node,
     store_graph_node,
@@ -27,6 +28,7 @@ def build_monitoring_graph() -> StateGraph:
     # ── Add nodes ───────────────────────────────────────────
     workflow.add_node("collect_signals", collect_signals_node)
     workflow.add_node("filter_new", filter_new_signals_node)
+    workflow.add_node("correlate", correlate_signals_node)
     workflow.add_node("analyze", analyze_signals_node)
     workflow.add_node("compute_analytics", compute_analytics_node)
     workflow.add_node("store_graph", store_graph_node)
@@ -36,7 +38,8 @@ def build_monitoring_graph() -> StateGraph:
     # ── Define edges ────────────────────────────────────────
     workflow.set_entry_point("collect_signals")
     workflow.add_edge("collect_signals", "filter_new")
-    workflow.add_edge("filter_new", "analyze")
+    workflow.add_edge("filter_new", "correlate")
+    workflow.add_edge("correlate", "analyze")
     workflow.add_edge("analyze", "compute_analytics")
     workflow.add_edge("compute_analytics", "store_graph")
     workflow.add_edge("store_graph", "generate_report")

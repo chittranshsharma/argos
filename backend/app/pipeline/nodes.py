@@ -227,6 +227,80 @@ def filter_new_signals_node(state: dict) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════
+# Node 2.5: Correlate Signals (Macro Events)
+# ═══════════════════════════════════════════════════════════
+
+def correlate_signals_node(state: dict) -> dict:
+    """Evaluate signals over the last 60 days to identify macro-level events."""
+    company_id = state["company_id"]
+    company_name = state["company_name"]
+    new_signals = state.get("new_signals", [])
+
+    try:
+        from app.database import get_supabase_client, save_signal
+        from app.analysis.signal_correlator import SignalCorrelator
+        client = get_supabase_client()
+        
+        # Fetch 60 days of history
+        import datetime
+        sixty_days_ago = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=60)).isoformat()
+        res = client.table("signals").select("*").eq("company_id", company_id).gte("collected_at", sixty_days_ago).execute()
+        historical_signals = res.data or []
+        
+        # Run correlator
+        correlator = SignalCorrelator()
+        correlations = correlator.evaluate_correlations(company_id, company_name, historical_signals)
+        
+        # Save new correlations & Adjust Graph Weights
+        added_correlations = []
+        try:
+            from app.memory.graph_db import GraphDB
+            graph_db = GraphDB()
+        except Exception:
+            graph_db = None
+            
+        for c in correlations:
+            # Check if we already emitted this correlation subtype for this company recently
+            exists = any(s.get("subtype") == c["subtype"] for s in historical_signals if str(s.get("signal_type")).upper() == "CORRELATION")
+            if not exists:
+                saved = save_signal(c)
+                if saved:
+                    c["id"] = saved.get("id")
+                    c["is_new"] = True
+                    added_correlations.append(c)
+                    
+                    # Boost graph edge weights based on objective evidence (not creating new facts)
+                    if graph_db:
+                        st = c["subtype"].upper()
+                        if st == "STRATEGIC_EXPANSION":
+                            graph_db.boost_relationship_weight(company_name, "EXPANDING_IN", 0.3)
+                            graph_db.boost_relationship_weight(company_name, "INVESTING_IN", 0.3)
+                        elif st == "COMPETITIVE_ACCELERATION":
+                            graph_db.boost_relationship_weight(company_name, "INVESTING_IN", 0.3)
+                        elif st == "MARKET_CONSOLIDATION":
+                            graph_db.boost_relationship_weight(company_name, "ACQUIRED", 0.4)
+                        elif st == "ORGANIZATIONAL_RISK":
+                            graph_db.boost_relationship_weight(company_name, "LED_BY", -0.2) # Volatility weakens leadership confidence slightly
+                        elif st == "LEADERSHIP_REORGANIZATION":
+                            graph_db.boost_relationship_weight(company_name, "LED_BY", 0.2) # Reorg stabilizes leadership
+                        elif st == "GEOGRAPHIC_EXPANSION":
+                            graph_db.boost_relationship_weight(company_name, "EXPANDING_IN", 0.3)
+                            graph_db.boost_relationship_weight(company_name, "PARTNERED_WITH", 0.2)
+                            
+        if graph_db:
+            graph_db.close()
+            
+        if added_correlations:
+            logger.info(f"Generated {len(added_correlations)} macro-level correlations for {company_name}")
+            new_signals.extend(added_correlations)
+            
+    except Exception as e:
+        logger.error(f"Signal correlation failed: {e}")
+
+    return {"new_signals": new_signals}
+
+
+# ═══════════════════════════════════════════════════════════
 # Node 3: Analyze signals with Groq LLM
 # ═══════════════════════════════════════════════════════════
 
@@ -426,45 +500,49 @@ def generate_report_node(state: dict) -> dict:
     hiring_text = json.dumps(hiring_trends, indent=2) if hiring_trends else "None detected"
     tech_text = json.dumps(tech_signals, indent=2) if tech_signals else "None detected"
 
+    # Separate correlations from raw signals
+    correlations = [s for s in new_signals if str(s.get("signal_type")).upper() == "CORRELATION"]
+    raw_signals = [s for s in new_signals if str(s.get("signal_type")).upper() != "CORRELATION"]
+
+    # Format data for Gemini
+    correlations_text = "\n".join(
+        f"- {s.get('subtype')}: {s.get('content')}" for s in correlations
+    ) if correlations else "No macro correlations detected this cycle."
+
+    signals_text = "\n".join(
+        f"- [{s.get('source')}] {s.get('title')} ({s.get('signal_type')})" for s in raw_signals[:30]
+    )
+    findings_text = "\n".join(f"- {f}" for f in key_findings)
+
     prompt = f"""Generate a professional competitive intelligence report in Markdown format for {company_name}.
+You are writing for an Executive Analyst. Prioritize the macro narrative derived from Correlated Events over raw signals.
 
 DATA:
-Signals ({len(new_signals)} total):
-{signals_text}
+Correlated Macro Events:
+{correlations_text}
 
-Key Findings:
+Key Extracted Findings:
 {findings_text}
 
-Hiring Trends:
-{hiring_text}
+Raw Signals ({len(raw_signals)} total):
+{signals_text}
 
-Technology Signals:
-{tech_text}
+FORMAT THE REPORT EXACTLY AS FOLLOWS:
 
-FORMAT THE REPORT AS:
 ## Competitive Intelligence: {company_name}
+
 ### Executive Summary
-(2-3 sentence overview of the most important developments)
+(Write a powerful 2-3 sentence overview focusing heavily on the Correlated Macro Events, if any. Tell the story of what is happening strategically.)
 
-### Key Signals This Week
-(Bullet points of the most important signals, grouped by source)
+### Correlated Events
+(If there are macro events like Strategic Expansion or Organizational Risk, list them here with their strategic implications. If none, state "No macro events detected.")
 
-### Hiring Trends
-(Analysis of job openings, growing/declining departments)
+### Evidence & Key Findings
+(List the most important findings and evidence supporting the executive summary.)
 
-### Technology Signals
-(New technologies adopted, migrations, deprecations)
-
-### Product Updates
-(Changelog entries, releases, launches)
-
-### Knowledge Graph Insights
-(Interesting connections between entities — competitors, technologies, people)
-
-### Recommended Actions
-(3-5 actionable recommendations based on the intelligence)
-
-Make it concise, professional, and actionable. Use bullet points and bold for emphasis."""
+### Raw Signals Appendix
+(A clean, bulleted list of the raw signals that occurred this cycle, grouped logically.)
+"""
 
     try:
         llm = get_groq_llm()

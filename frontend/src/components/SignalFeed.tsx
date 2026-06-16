@@ -1,11 +1,12 @@
 "use client";
 
 import type { Signal } from "@/lib/types";
-import { AlertTriangle, Activity, CheckCircle2, Info } from "lucide-react";
+import { AlertTriangle, Activity, CheckCircle2, Info, Zap } from "lucide-react";
 
 // ── Severity Hierarchy ────────────────────────────────────
 
 const SEVERITY_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType; label: string }> = {
+  correlation: { bg: "bg-purple-500/20", text: "text-purple-400", border: "border-purple-500/40", icon: Zap, label: "MACRO EVENT" },
   critical: { bg: "bg-status-critical/10", text: "text-status-critical", border: "border-status-critical/30", icon: AlertTriangle, label: "CRITICAL IMPACT" },
   high: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", icon: Activity, label: "HIGH IMPACT" },
   medium: { bg: "bg-status-elevated/10", text: "text-status-elevated", border: "border-status-elevated/30", icon: CheckCircle2, label: "MEDIUM IMPACT" },
@@ -13,7 +14,8 @@ const SEVERITY_STYLES: Record<string, { bg: string; text: string; border: string
 };
 
 // Map old "importance" to new severity
-function mapImportanceToSeverity(importance: string) {
+function mapImportanceToSeverity(importance: string, signalType: string = "") {
+  if (signalType.toUpperCase() === "CORRELATION") return "correlation";
   if (importance === "high") return "high"; // Or critical if score is very high
   if (importance === "medium") return "medium";
   return "low";
@@ -97,22 +99,27 @@ export default function SignalFeed({
     <div className="space-y-4">
       {signals.map((signal) => {
         // Derive visual properties
-        const severityKey = mapImportanceToSeverity(signal.importance);
+        const severityKey = mapImportanceToSeverity(signal.importance, signal.signal_type);
         // Elevate to critical if high score
-        const finalSeverityKey = (severityKey === "high" && (signal.score || 0) > 0.9) ? "critical" : severityKey;
+        let finalSeverityKey = (severityKey === "high" && (signal.score || 0) > 0.9) ? "critical" : severityKey;
+        if (severityKey === "correlation") finalSeverityKey = "correlation";
+        
         const severity = SEVERITY_STYLES[finalSeverityKey];
         const SeverityIcon = severity.icon;
 
-        const confidence = signal.score ? Math.round(signal.score * 100) : (80 + (signal.id.length % 20)); // Fallback for UI density if score missing
+        const confidence = signal.score ? Math.round(signal.score * 100) : (80 + ((signal.id?.length || 0) % 20)); // Fallback for UI density if score missing
         const signalType = (signal.signal_type || "Market Event").replace(/_/g, ' ').toUpperCase();
+        
+        // Emphasize correlations
+        const isCorrelation = finalSeverityKey === "correlation";
 
         return (
           <div
             key={signal.id}
-            className={`intelligence-card p-5 group flex flex-col gap-3 relative overflow-hidden`}
+            className={`intelligence-card p-5 group flex flex-col gap-3 relative overflow-hidden ${isCorrelation ? 'ring-2 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.1)]' : ''}`}
           >
             {/* Left Accent Line based on Severity */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${severity.bg} opacity-50`} />
+            <div className={`absolute left-0 top-0 bottom-0 ${isCorrelation ? 'w-2' : 'w-1'} ${severity.bg} opacity-80`} />
 
             {/* Header: Meta tags */}
             <div className="flex items-center justify-between gap-4">
@@ -161,6 +168,31 @@ export default function SignalFeed({
                   {getMockInsight(signal, finalSeverityKey)}
                 </span>
               </div>
+              
+              {/* Evidence Box for Correlations */}
+              {isCorrelation && signal.payload?.supporting_signals && signal.payload.supporting_signals.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-purple-500/20">
+                  <div className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <Zap className="w-3 h-3" /> Supporting Evidence
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {signal.payload.supporting_signals.map((ev: any, i: number) => {
+                      const evType = (ev.signal_type || "Signal").toUpperCase();
+                      return (
+                        <div key={ev.id || i} className="p-3 rounded-lg border border-surface-bright/30 bg-surface-low hover:bg-surface-bright/10 transition-colors">
+                          <div className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest mb-1 opacity-70">
+                            ┌ {evType} ───────────────────
+                          </div>
+                          <p className="font-medium text-sm text-on-surface line-clamp-1">{ev.title}</p>
+                          {ev.content && (
+                            <p className="text-xs text-on-surface-variant line-clamp-1 mt-0.5">{stripHtml(ev.content)}</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer Metrics */}

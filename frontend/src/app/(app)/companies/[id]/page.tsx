@@ -9,6 +9,7 @@ import { ArrowLeft, RefreshCw, Activity, ExternalLink, Globe, Play, FileText, Ba
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ExecutiveMovements } from "@/components/ExecutiveMovements";
 
 export default function CompanyDetailPage() {
   const { id } = useParams() as { id: string };
@@ -204,12 +205,16 @@ export default function CompanyDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
         {/* Main Feed */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold tracking-tight text-on-surface flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary" /> Recent Signals
-            </h2>
-          </div>
+        <div className="lg:col-span-2 space-y-8">
+          
+          <ExecutiveMovements companyId={id} />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold tracking-tight text-on-surface flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" /> Recent Signals
+              </h2>
+            </div>
           
           {recent_signals.length > 0 ? (
             <SignalFeed signals={recent_signals} showCompany={false} />
