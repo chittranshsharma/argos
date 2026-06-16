@@ -6,10 +6,10 @@ All constants and settings loaded from environment.
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # ── LLM Models ──────────────────────────────────────────────
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.1-8b-instant"
 GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_EMBEDDING_MODEL = "text-embedding-004"
 
@@ -38,6 +38,9 @@ NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 # ── LLM API Keys ───────────────────────────────────────────
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+# ── News API ────────────────────────────────────────────────
+NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
 
 # ── Reddit ──────────────────────────────────────────────────
 REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID", "")

@@ -27,13 +27,28 @@ class JobsAgent:
         jobs = []
 
         # 1. Attempt structured ATS extraction
+        ats_source = "UNKNOWN"
         if "greenhouse.io" in careers_url:
             jobs = self._extract_greenhouse(careers_url)
+            ats_source = "GREENHOUSE"
         elif "jobs.lever.co" in careers_url:
             jobs = self._extract_lever(careers_url)
+            ats_source = "LEVER"
+        elif "ashbyhq.com" in careers_url:
+            jobs = self._extract_ashby(careers_url)
+            ats_source = "ASHBY"
+        elif re.search(r'wd\d*\.myworkdayjobs\.com', careers_url) or "myworkdayjobs.com" in careers_url:
+            jobs = self._extract_workday(careers_url)
+            ats_source = "WORKDAY"
         else:
-            # Fallback to Playwright
-            jobs = self._extract_playwright(careers_url)
+            # Phase 2: Detect Workday from HTML or fallback to Playwright
+            html_snippet = self._fetch_initial_html(careers_url)
+            if "workday/cxs/" in html_snippet.lower() or "wd/cxs/" in html_snippet.lower() or "myworkdayjobs" in html_snippet.lower():
+                jobs = self._extract_workday(careers_url)
+                ats_source = "WORKDAY"
+            else:
+                jobs = self._extract_playwright(careers_url)
+                ats_source = "PLAYWRIGHT"
 
         if not jobs:
             return []
@@ -62,7 +77,7 @@ class JobsAgent:
                     "title": s.get("title", "Hiring Expansion Detected"),
                     "content": s.get("content", ""),
                     "url": careers_url,
-                    "payload": {"new_roles": s.get("roles_involved", [])},
+                    "payload": {"new_roles": s.get("roles_involved", []), "ats": ats_source},
                     "agent": "JobsAgent",
                     "extraction_model": "groq-llama-3"
                 })
@@ -103,6 +118,58 @@ class JobsAgent:
         except Exception as e:
             logger.warning(f"Lever extraction failed: {e}")
         return []
+
+    def _extract_ashby(self, url: str) -> list[dict]:
+        """Fetch jobs from Ashby API."""
+        try:
+            board = url.rstrip("/").split("/")[-1]
+            api_url = f"https://api.ashbyhq.com/posting-api/job-board/{board}"
+            resp = requests.post(api_url, json={}, timeout=10)
+            if resp.status_code == 200:
+                jobs = resp.json().get("jobs", [])
+                return [{"title": j.get("title"), "location": j.get("location"), "department": j.get("department")} for j in jobs]
+        except Exception as e:
+            logger.warning(f"Ashby extraction failed: {e}")
+        return []
+
+    def _extract_workday(self, url: str) -> list[dict]:
+        """Fetch jobs from Workday API."""
+        try:
+            # Attempt to construct the cxs endpoint
+            # Usually: https://<tenant>.<pod>.myworkdayjobs.com/<site>
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            host = parsed.netloc
+            path_parts = [p for p in parsed.path.split('/') if p]
+            
+            if host and path_parts:
+                tenant = host.split('.')[0]
+                site = path_parts[0]
+                
+                # Workday requires Accepts/Content-Type for JSON endpoints
+                headers = {"Accept": "application/json", "Content-Type": "application/json"}
+                api_url = f"https://{host}/wday/cxs/{tenant}/{site}/jobs"
+                payload = {"appliedFacets": {}, "limit": 50, "offset": 0, "searchText": ""}
+                resp = requests.post(api_url, json=payload, headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    jobs = resp.json().get("jobPostings", [])
+                    return [{"title": j.get("title"), "location": j.get("locationsText"), "department": "Unknown"} for j in jobs]
+        except Exception as e:
+            logger.warning(f"Workday API extraction failed: {e}")
+        
+        # Fallback to Playwright if API construction fails (e.g., custom domains)
+        logger.info("Falling back to Playwright for Workday URL")
+        return self._extract_playwright(url)
+
+    def _fetch_initial_html(self, url: str) -> str:
+        """Fetch a snippet of HTML to detect underlying ATS providers."""
+        try:
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                return resp.text[:10000]
+        except Exception:
+            pass
+        return ""
 
     def _extract_playwright(self, url: str) -> list[dict]:
         """Fallback to Playwright scraping."""

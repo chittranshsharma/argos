@@ -22,7 +22,7 @@ def get_groq_llm() -> ChatGroq:
         api_key=GROQ_API_KEY,
         model_name=GROQ_MODEL,
         temperature=0.1,
-        max_tokens=4096,
+        max_tokens=500,
     )
 
 
