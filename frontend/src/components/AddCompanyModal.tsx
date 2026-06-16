@@ -9,7 +9,6 @@ import type { DiscoveryResult } from "@/lib/types";
 const SOURCE_LABELS: { key: keyof DiscoveryResult; label: string; icon: string }[] = [
   { key: "github_org", label: "GitHub", icon: "◆" },
   { key: "careers_url", label: "Careers", icon: "◈" },
-  { key: "reddit_sub", label: "Reddit", icon: "◉" },
   { key: "producthunt_slug", label: "ProductHunt", icon: "▣" },
   { key: "linkedin_url", label: "LinkedIn", icon: "▢" },
   { key: "changelog_url", label: "Changelog", icon: "◎" },

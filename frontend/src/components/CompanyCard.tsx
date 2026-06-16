@@ -9,7 +9,6 @@ function countActiveSources(company: Company): number {
   let count = 0;
   if (company.github_org) count++;
   if (company.careers_url) count++;
-  if (company.reddit_sub) count++;
   if (company.producthunt_slug) count++;
   if (company.linkedin_url) count++;
   if (company.changelog_url) count++;

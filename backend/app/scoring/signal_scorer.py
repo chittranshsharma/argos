@@ -19,7 +19,13 @@ class SignalScorer:
         SignalSubtype.CEO_APPOINTED: 9.5,
         SignalSubtype.CEO_DEPARTED: 9.5,
         SignalSubtype.CTO_APPOINTED: 8.5,
+        SignalSubtype.CTO_DEPARTED: 8.5,
+        SignalSubtype.CFO_APPOINTED: 8.5,
         SignalSubtype.CFO_DEPARTED: 8.5,
+        SignalSubtype.COO_APPOINTED: 8.5,
+        SignalSubtype.COO_DEPARTED: 8.5,
+        SignalSubtype.CRO_APPOINTED: 8.0,
+        SignalSubtype.CRO_DEPARTED: 8.0,
         SignalSubtype.BOARD_CHANGE: 8.0,
         
         # Funding

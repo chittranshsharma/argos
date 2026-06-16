@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 
 from app.agents.github_agent import GitHubAgent
 from app.agents.news_agent import NewsAgent
-from app.agents.reddit_agent import RedditAgent
 from app.agents.hackernews_agent import HackerNewsAgent
 from app.agents.jobs_agent import JobsAgent
 from app.agents.changelog_agent import ChangelogAgent
@@ -48,12 +47,6 @@ def collect_signals_node(state: dict) -> dict:
     if company_data.get("news_keywords"):
         tasks.append(("news", NewsAgent().collect,
                       {"keywords": company_data["news_keywords"],
-                       "company_name": company_name, "company_id": company_id}))
-
-    if company_data.get("reddit_sub") or True:
-        # Always search Reddit even without specific subreddit
-        tasks.append(("reddit", RedditAgent().collect,
-                      {"subreddit": company_data.get("reddit_sub", ""),
                        "company_name": company_name, "company_id": company_id}))
 
     tasks.append(("hackernews", HackerNewsAgent().collect,
@@ -305,7 +298,7 @@ Be specific and factual. Only include findings supported by the signals."""
 
     # Track social sentiment
     try:
-        social_signals = [s for s in new_signals if s.get("source") in ["reddit", "hackernews"]]
+        social_signals = [s for s in new_signals if s.get("source") in ["hackernews"]]
         if social_signals:
             from app.analysis.sentiment_analyzer import SentimentAnalyzer
             from app.database import get_supabase_client

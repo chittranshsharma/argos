@@ -302,7 +302,7 @@ async def get_anomalies(company_id: str):
         from app.scoring.signal_scorer import SignalScorer
         from app.database import get_signal_baseline
         scorer = SignalScorer()
-        sources = ["github", "jobs", "news", "reddit", 
+        sources = ["github", "jobs", "news", 
                    "hackernews", "linkedin", "changelog", 
                    "producthunt"]
         anomalies = []
@@ -370,7 +370,7 @@ async def get_sentiment_timeline(
         signals = client.table("signals")\
             .select("*")\
             .eq("company_id", company_id)\
-            .in_("source", ["reddit", "hackernews"])\
+            .in_("source", ["hackernews"])\
             .gte("collected_at", since)\
             .execute()
         

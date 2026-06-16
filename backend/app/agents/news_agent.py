@@ -10,6 +10,7 @@ from urllib.parse import quote_plus
 import feedparser
 
 from app.config import HIGH_IMPORTANCE_KEYWORDS
+from app.signals.registry import SignalSubtype
 
 logger = logging.getLogger(__name__)
 

@@ -49,10 +49,12 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               {[
-                { name: "GitHub API", status: "Connected", sync: "10m ago", icon: HardDrive },
-                { name: "Reddit OAuth", status: "Connected", sync: "2m ago", icon: Link2 },
-                { name: "LinkedIn Scraper", status: "Degraded", sync: "1h ago", icon: Database },
-                { name: "HackerNews Firehose", status: "Connected", sync: "Just now", icon: HardDrive },
+                { name: "News Intelligence", status: "Connected", sync: "Just now", icon: HardDrive },
+                { name: "GitHub Intelligence", status: "Connected", sync: "10m ago", icon: HardDrive },
+                { name: "Hiring Intelligence", status: "Connected", sync: "5m ago", icon: Database },
+                { name: "Funding Intelligence", status: "Connected", sync: "15m ago", icon: Link2 },
+                { name: "Executive Intelligence", status: "Connected", sync: "1h ago", icon: Database },
+                { name: "Partnership Intelligence", status: "Connected", sync: "2h ago", icon: Link2 },
               ].map((source, i) => {
                 const Icon = source.icon;
                 const isDegraded = source.status === "Degraded";

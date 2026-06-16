@@ -27,7 +27,6 @@ class AutoDiscoverer:
 {{
     "github_org": "org name on github.com",
     "careers_url": "direct URL to careers/jobs page",
-    "reddit_sub": "subreddit name without r/",
     "producthunt_slug": "slug on producthunt.com",
     "linkedin_url": "full linkedin.com/company/... URL",
     "changelog_url": "URL to changelog or blog",
@@ -41,7 +40,7 @@ Return ONLY valid JSON, no explanation. Be accurate — only include sources you
         result = {
             "github_org": None,
             "careers_url": None,
-            "reddit_sub": None,
+            "reddit_sub": None, # Kept for schema compatibility, set to None
             "producthunt_slug": None,
             "linkedin_url": None,
             "changelog_url": None,

@@ -86,7 +86,7 @@ class ExecutiveAgent:
         prompt = f"""Analyze the following news articles about {company_name}.
 Extract any major executive movements (CEO, CTO, CFO, Board).
 
-Allowed Subtypes: CEO_APPOINTED, CEO_DEPARTED, CTO_APPOINTED, CFO_DEPARTED, BOARD_CHANGE
+Allowed Subtypes: CEO_APPOINTED, CEO_DEPARTED, CTO_APPOINTED, CTO_DEPARTED, CFO_APPOINTED, CFO_DEPARTED, COO_APPOINTED, COO_DEPARTED, CRO_APPOINTED, CRO_DEPARTED, BOARD_CHANGE
 
 Articles:
 {articles_text}

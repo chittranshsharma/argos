@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
             ) : velocity.length === 0 ? (
               <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-xs">NO SIGNAL DATA</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={velocity} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <XAxis dataKey="date" stroke="#666" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(str) => str.split("-").slice(1).join("/")} />
                   <YAxis stroke="#666" fontSize={10} tickLine={false} axisLine={false} />
@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
               {loading ? (
                 <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-mono text-xs">LOADING...</div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={distribution} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#222" horizontal={true} vertical={false} />
                     <XAxis type="number" stroke="#666" fontSize={10} tickLine={false} axisLine={false} hide />
@@ -266,7 +266,7 @@ export default function AnalyticsPage() {
               ) : (
                 <>
                   <div className="w-1/2 h-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie
                           data={sov.slice(0, 5)}
