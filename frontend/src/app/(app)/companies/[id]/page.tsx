@@ -15,6 +15,7 @@ import { StrategicAssessment } from "@/components/StrategicAssessment";
 export default function CompanyDetailPage() {
   const { id } = useParams() as { id: string };
   const [data, setData] = useState<CompanyDetailResponse | null>(null);
+  const [activityFeed, setActivityFeed] = useState<import('@/lib/types').ActivityItem[]>([]);
   const [analytics, setAnalytics] = useState<CompanyAnalytics | null>(null);
   const [rank, setRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,12 +25,14 @@ export default function CompanyDetailPage() {
     async function loadData() {
       setLoading(true);
       try {
-        const [res, analyticsData, rankingsData] = await Promise.all([
+        const [res, feedData, analyticsData, rankingsData] = await Promise.all([
           getCompanyDetail(id),
+          import('@/lib/api').then(m => m.getActivityFeed(id)),
           getCompanyAnalytics(id),
           getRankings(100)
         ]);
         setData(res);
+        setActivityFeed(feedData);
         setAnalytics(analyticsData);
         const myRank = rankingsData.find(r => r.id === id)?.rank;
         if (myRank) setRank(myRank);
@@ -215,15 +218,15 @@ export default function CompanyDetailPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold tracking-tight text-on-surface flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" /> Recent Signals
+                <Activity className="w-5 h-5 text-primary" /> Intelligence Feed
               </h2>
             </div>
           
-          {recent_signals.length > 0 ? (
-            <SignalFeed signals={recent_signals} showCompany={false} />
+          {activityFeed.length > 0 ? (
+            <SignalFeed signals={activityFeed} showCompany={false} />
           ) : (
             <div className="glass-panel p-8 text-center rounded-xl border border-surface-bright/20">
-              <p className="text-on-surface-variant">No signals intercepted yet.</p>
+              <p className="text-on-surface-variant">No activity intercepted yet.</p>
             </div>
           )}
           </div>

@@ -116,12 +116,28 @@ export async function getCompanySignals(
   return data.signals;
 }
 
+export async function getActivityFeed(
+  companyId: string,
+  limit = 50
+): Promise<import('./types').ActivityItem[]> {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) });
+    const data = await apiFetch<{ feed: import('./types').ActivityItem[] }>(
+      `/companies/${companyId}/activity_feed?${params}`
+    );
+    return data.feed || [];
+  } catch (err) {
+    console.error("Failed to fetch activity feed", err);
+    return [];
+  }
+}
+
 export async function getSignalFeed(params?: {
   limit?: number;
   source?: string;
   importance?: string;
   company_id?: string;
-}): Promise<Signal[]> {
+}): Promise<import('./types').ActivityItem[]> {
   const searchParams = new URLSearchParams();
   if (params?.limit) searchParams.set("limit", String(params.limit));
   if (params?.source) searchParams.set("source", params.source);
@@ -131,7 +147,11 @@ export async function getSignalFeed(params?: {
   const data = await apiFetch<{ signals: Signal[] }>(
     `/signals/feed?${searchParams}`
   );
-  return data.signals;
+  return data.signals.map(s => ({
+    ...s,
+    activity_type: "signal" as const,
+    timestamp: s.collected_at
+  }));
 }
 
 // ── Hypotheses ─────────────────────────────────────────────

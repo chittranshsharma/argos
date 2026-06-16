@@ -35,17 +35,20 @@ for target in targets:
         
     print(f"Signals found: {len(real_signals)}")
     
-    # Run correlator to generate hypotheses
-    state = {
-        'company_id': company_id,
-        'company_name': company_name,
-        'new_signals': real_signals
-    }
-    
-    print("Running Hypothesis Engine...")
-    correlate_signals_node(state)
-    
+    print("Running Hypothesis Engine in chunks to test State Awareness...")
+    chunk_size = 15
+    for i in range(0, len(real_signals), chunk_size):
+        chunk = real_signals[i:i+chunk_size]
+        state = {
+            'company_id': company_id,
+            'company_name': company_name,
+            'new_signals': chunk
+        }
+        correlate_signals_node(state)
+        
     # Run watchlist scorer on all signals to generate evaluations/snapshots
+    # Wait, HypothesisEngine now creates evaluations and snapshots automatically for UPDATEs!
+    # So we don't strictly need WatchlistScorer to run for this test, but we can leave it
     print("Running Watchlist Scorer...")
     for sig in real_signals:
         scorer.evaluate_signal(company_id, sig)

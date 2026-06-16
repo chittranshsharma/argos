@@ -454,6 +454,54 @@ async def get_company_signals(company_id: str, limit: int = 50, source: str = "a
     signals = get_signals(company_id, limit=limit, source=source)
     return {"signals": signals}
 
+@app.get("/companies/{company_id}/activity_feed")
+async def get_activity_feed(company_id: str, limit: int = 50):
+    """Get interleaved signals, hypotheses, and evaluations."""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        
+        # 1. Fetch Signals
+        sig_res = client.table("signals").select("*").eq("company_id", company_id).order("collected_at", desc=True).limit(limit).execute()
+        signals = sig_res.data or []
+        for s in signals:
+            s["activity_type"] = "signal"
+            s["timestamp"] = s.get("collected_at")
+            raw = s.get("raw_data", {})
+            for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+                if key in raw:
+                    s[key] = raw[key]
+            
+        # 2. Fetch Hypotheses
+        hyp_res = client.table("hypotheses").select("*").eq("company_id", company_id).order("created_at", desc=True).limit(limit).execute()
+        hypotheses = hyp_res.data or []
+        for h in hypotheses:
+            h["activity_type"] = "hypothesis"
+            h["timestamp"] = h.get("created_at")
+            
+        # 3. Fetch Evaluations
+        evals = []
+        if hypotheses:
+            hyp_ids = [h["id"] for h in hypotheses]
+            eval_res = client.table("hypothesis_evaluations").select("*, signals(*)").in_("hypothesis_id", hyp_ids).order("created_at", desc=True).limit(limit).execute()
+            evals = eval_res.data or []
+            for e in evals:
+                e["activity_type"] = "evaluation"
+                e["timestamp"] = e.get("created_at")
+                
+        # Interleave and sort
+        combined = signals + hypotheses + evals
+        combined.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        
+        # Filter out rejected signals so they don't clutter the feed
+        combined = [x for x in combined if not (x.get("activity_type") == "signal" and x.get("payload", {}).get("review_status") == "rejected")]
+        
+        return {"feed": combined[:limit]}
+    except Exception as e:
+        logger.error(f"Error getting activity feed for {company_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @app.get("/api/signals/feed")
 def api_get_signals_feed(limit: int = 100, source: str = None, importance: str = None):

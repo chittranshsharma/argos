@@ -7,7 +7,7 @@ import SignalFeed from "@/components/SignalFeed";
 import { Activity, Filter } from "lucide-react";
 
 export default function IntelligencePage() {
-  const [signals, setSignals] = useState<Signal[]>([]);
+  const [signals, setSignals] = useState<import('@/lib/types').ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>("ALL");
   const [filterCompany, setFilterCompany] = useState<string>("ALL");

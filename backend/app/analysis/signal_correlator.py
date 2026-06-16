@@ -1,7 +1,8 @@
 """
 Argos — Signal Correlator
-Evaluates recent signals using deterministic hard rules to identify macro-level events.
-Uses an LLM only to generate the narrative explanation for matched rules.
+[DORMANT]: This module is an experimental subsystem under observation for 30 days.
+It currently produces 0% of the hypotheses and serves only to collect metrics 
+comparing its rule-based output against the HypothesisEngine's direct LLM synthesis.
 """
 
 import logging

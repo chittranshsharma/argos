@@ -241,7 +241,7 @@ def correlate_signals_node(state: dict) -> dict:
     new_signals = state.get("new_signals", [])
 
     try:
-        from app.database import get_supabase_client, save_signal
+        from app.database import get_supabase_client, save_signal, save_analytics_snapshot
         from app.analysis.signal_correlator import SignalCorrelator
         client = get_supabase_client()
         
@@ -251,7 +251,7 @@ def correlate_signals_node(state: dict) -> dict:
         res = client.table("signals").select("*").eq("company_id", company_id).gte("collected_at", sixty_days_ago).execute()
         historical_signals = res.data or []
         
-        # Run correlator
+        # Run correlator (EXPERIMENTAL/DORMANT - METRICS ONLY)
         correlator = SignalCorrelator()
         correlations = correlator.evaluate_correlations(company_id, company_name, historical_signals)
         
@@ -284,9 +284,9 @@ def correlate_signals_node(state: dict) -> dict:
                         elif st == "MARKET_CONSOLIDATION":
                             graph_db.boost_relationship_weight(company_name, "ACQUIRED", 0.4)
                         elif st == "ORGANIZATIONAL_RISK":
-                            graph_db.boost_relationship_weight(company_name, "LED_BY", -0.2) # Volatility weakens leadership confidence slightly
+                            graph_db.boost_relationship_weight(company_name, "LED_BY", -0.2)
                         elif st == "LEADERSHIP_REORGANIZATION":
-                            graph_db.boost_relationship_weight(company_name, "LED_BY", 0.2) # Reorg stabilizes leadership
+                            graph_db.boost_relationship_weight(company_name, "LED_BY", 0.2)
                         elif st == "GEOGRAPHIC_EXPANSION":
                             graph_db.boost_relationship_weight(company_name, "EXPANDING_IN", 0.3)
                             graph_db.boost_relationship_weight(company_name, "PARTNERED_WITH", 0.2)
@@ -298,9 +298,9 @@ def correlate_signals_node(state: dict) -> dict:
             logger.info(f"Generated {len(added_correlations)} macro-level correlations for {company_name}")
             new_signals.extend(added_correlations)
             
-        # BUGFIX: The correlator rules are extremely strict, resulting in added_correlations often being empty.
-        # This completely halted the Hypothesis Engine pipeline.
-        # Now, we also trigger hypothesis generation if there are high importance signals.
+        # ---------------------------------------------------------------------
+        # HYPOTHESIS ENGINE (Primary Strategic Layer)
+        # ---------------------------------------------------------------------
         high_importance_signals = []
         for s in new_signals:
             imp = s.get("importance", 0.0)
@@ -310,20 +310,47 @@ def correlate_signals_node(state: dict) -> dict:
             except (ValueError, TypeError):
                 pass
         
+        hypotheses_from_correlation = 0
+        hypotheses_from_direct_signals = 0
             
-        if added_correlations or high_importance_signals:
-            # TRIGGER A: Correlation or High Importance signals fire -> generate hypotheses
+        if high_importance_signals:
             try:
                 from app.analysis.hypothesis_engine import HypothesisEngine
-                trigger_reason = "Macro-correlation detected" if added_correlations else "High importance signals detected"
-                HypothesisEngine().generate_hypotheses(
+                he = HypothesisEngine()
+                hypotheses = he.generate_hypotheses(
                     company_id=company_id, 
                     company_name=company_name, 
-                    recent_signals=historical_signals + added_correlations + high_importance_signals,
-                    trigger_reason=trigger_reason
+                    recent_signals=historical_signals + high_importance_signals,
+                    trigger_reason="High importance signals detected"
                 )
-            except Exception as he:
-                logger.error(f"Failed to generate hypotheses: {he}")
+                hypotheses_from_direct_signals = len(hypotheses)
+                hypothesis_metrics = he.metrics
+            except Exception as e:
+                logger.error(f"Failed to generate hypotheses: {e}")
+                hypothesis_metrics = {}
+        else:
+            hypothesis_metrics = {}
+                
+        # ---------------------------------------------------------------------
+        # STORE EXPERIMENTAL CORRELATOR METRICS
+        # ---------------------------------------------------------------------
+        correlation_attempts = len(correlations) if correlations else 1 # Number of times we evaluated the ruleset
+        correlations_generated = len(added_correlations)
+        correlation_success_rate = correlations_generated / correlation_attempts if correlation_attempts > 0 else 0
+        
+        save_analytics_snapshot("correlation_metrics", {
+            "company_id": company_id,
+            "company_name": company_name,
+            "correlation_attempts": correlation_attempts,
+            "correlations_generated": correlations_generated,
+            "correlation_success_rate": correlation_success_rate,
+            "hypotheses_from_correlation": hypotheses_from_correlation,
+            "hypotheses_from_direct_signals": hypotheses_from_direct_signals,
+            "hypotheses_created": hypothesis_metrics.get("hypotheses_created", 0),
+            "hypotheses_deduplicated": hypothesis_metrics.get("hypotheses_deduplicated", 0),
+            "evaluations_created": hypothesis_metrics.get("evaluations_created", 0),
+            "confidence_updates_applied": hypothesis_metrics.get("confidence_updates_applied", 0)
+        })
             
     except Exception as e:
         logger.error(f"Signal correlation failed: {e}")
@@ -531,26 +558,32 @@ def generate_report_node(state: dict) -> dict:
     hiring_text = json.dumps(hiring_trends, indent=2) if hiring_trends else "None detected"
     tech_text = json.dumps(tech_signals, indent=2) if tech_signals else "None detected"
 
-    # Separate correlations from raw signals
-    correlations = [s for s in new_signals if str(s.get("signal_type")).upper() == "CORRELATION"]
+    # Fetch Top Active Hypotheses instead of Correlations
+    try:
+        from app.database import get_active_hypotheses
+        active_hypotheses = get_active_hypotheses(company_id)
+        # Sort by confidence
+        active_hypotheses.sort(key=lambda x: float(x.get("confidence", 0)), reverse=True)
+    except Exception as e:
+        logger.error(f"Failed to fetch hypotheses for report: {e}")
+        active_hypotheses = []
+
+    hypotheses_text = "\n".join(
+        f"- **{h.get('title')}** (Confidence: {h.get('confidence')}): {h.get('description')}" 
+        for h in active_hypotheses[:5]
+    ) if active_hypotheses else "No active strategic hypotheses detected."
+
     raw_signals = [s for s in new_signals if str(s.get("signal_type")).upper() != "CORRELATION"]
-
-    # Format data for Gemini
-    correlations_text = "\n".join(
-        f"- {s.get('subtype')}: {s.get('content')}" for s in correlations
-    ) if correlations else "No macro correlations detected this cycle."
-
     signals_text = "\n".join(
         f"- [{s.get('source')}] {s.get('title')} ({s.get('signal_type')})" for s in raw_signals[:30]
     )
-    findings_text = "\n".join(f"- {f}" for f in key_findings)
 
     prompt = f"""Generate a professional competitive intelligence report in Markdown format for {company_name}.
-You are writing for an Executive Analyst. Prioritize the macro narrative derived from Correlated Events over raw signals.
+You are writing for an Executive Analyst. Prioritize the strategic narrative derived from the Top Active Hypotheses over raw signals.
 
 DATA:
-Correlated Macro Events:
-{correlations_text}
+Top Active Hypotheses:
+{hypotheses_text}
 
 Key Extracted Findings:
 {findings_text}
@@ -563,10 +596,10 @@ FORMAT THE REPORT EXACTLY AS FOLLOWS:
 ## Competitive Intelligence: {company_name}
 
 ### Executive Summary
-(Write a powerful 2-3 sentence overview focusing heavily on the Correlated Macro Events, if any. Tell the story of what is happening strategically.)
+(Write a powerful 2-3 sentence overview focusing heavily on the Top Active Hypotheses. Tell the story of what the company is strategically attempting to do or what risks they face.)
 
-### Correlated Events
-(If there are macro events like Strategic Expansion or Organizational Risk, list them here with their strategic implications. If none, state "No macro events detected.")
+### Top Active Hypotheses
+(If there are active hypotheses, list them here with their strategic implications. If none, state "No active hypotheses detected.")
 
 ### Evidence & Key Findings
 (List the most important findings and evidence supporting the executive summary.)

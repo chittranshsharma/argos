@@ -265,3 +265,8 @@ export interface HypothesisEvaluation {
   created_at: string;
   signals?: Signal; // The joined signal
 }
+
+export type ActivityItem = 
+  | (Signal & { activity_type: "signal"; timestamp: string; payload?: any })
+  | (Hypothesis & { activity_type: "hypothesis"; timestamp: string; payload?: any })
+  | (HypothesisEvaluation & { activity_type: "evaluation"; timestamp: string; payload?: any });

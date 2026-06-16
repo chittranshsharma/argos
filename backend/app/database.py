@@ -504,6 +504,15 @@ def get_active_hypotheses(company_id: str) -> list:
         logger.error(f"Error getting hypotheses: {e}")
         return []
 
+def get_active_and_confirmed_hypotheses(company_id: str) -> list:
+    try:
+        client = get_supabase_client()
+        response = client.table("hypotheses").select("*").eq("company_id", company_id).in_("status", ["ACTIVE", "CONFIRMED"]).execute()
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting active and confirmed hypotheses: {e}")
+        return []
+
 def create_hypothesis(data: dict) -> dict:
     try:
         client = get_supabase_client()

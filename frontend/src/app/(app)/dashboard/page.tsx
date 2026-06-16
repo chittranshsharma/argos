@@ -54,7 +54,7 @@ function StatCard({
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [signals, setSignals] = useState<Signal[]>([]);
+  const [signals, setSignals] = useState<import('@/lib/types').ActivityItem[]>([]);
   const [trending, setTrending] = useState<ShareOfVoiceEntry[]>([]);
   const [anomalies, setAnomalies] = useState<Alert[]>([]);
   const [sources, setSources] = useState<{ percentages: Record<string, number> } | null>(null);
