@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCompanyHypotheses, getHypothesisEvaluations } from "@/lib/api";
+import { getCompanyHypotheses, getHypothesisEvaluations, getResolutionSuggestions, resolveHypothesis } from "@/lib/api";
 import type { Hypothesis, HypothesisEvaluation } from "@/lib/types";
-import { Target, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Activity, AlertCircle } from "lucide-react";
+import { Target, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Activity, AlertCircle, ExternalLink, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
 
 export function StrategicAssessment({ companyId }: { companyId: string }) {
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [evaluations, setEvaluations] = useState<Record<string, HypothesisEvaluation[]>>({});
+  const [suggestions, setSuggestions] = useState<Record<string, any>>({});
+  const [resolving, setResolving] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -30,6 +32,18 @@ export function StrategicAssessment({ companyId }: { companyId: string }) {
       const evals = await getHypothesisEvaluations(id);
       setEvaluations(prev => ({ ...prev, [id]: evals }));
     }
+    if (!suggestions[id]) {
+      const sugg = await getResolutionSuggestions(id);
+      setSuggestions(prev => ({ ...prev, [id]: sugg }));
+    }
+  };
+
+  const handleResolve = async (id: string, outcome: string) => {
+    setResolving(id);
+    await resolveHypothesis(id, outcome, "Resolved manually by analyst");
+    // Optimistic update
+    setHypotheses(prev => prev.map(h => h.id === id ? { ...h, outcome: outcome as any, status: outcome === 'CORRECT' ? 'CONFIRMED' : (outcome === 'INCORRECT' ? 'REJECTED' : 'ACTIVE') } : h));
+    setResolving(null);
   };
 
   if (loading) {
@@ -133,6 +147,63 @@ export function StrategicAssessment({ companyId }: { companyId: string }) {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Resolution Panel */}
+                {(!hyp.outcome || hyp.outcome === 'PENDING') && (
+                  <div className="mt-8 p-5 bg-surface-low rounded-xl border border-primary/20">
+                    <h4 className="text-sm font-bold text-on-surface mb-3 flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" /> Outcome Resolution
+                    </h4>
+                    
+                    {suggestions[hyp.id] ? (
+                      <div className="space-y-4">
+                        <div className="text-sm text-on-surface-variant">
+                          <strong className="text-primary uppercase text-[10px] tracking-widest block mb-1">Suggested Outcome</strong>
+                          <span className="font-mono text-on-surface">{suggestions[hyp.id].suggested_outcome}</span>
+                        </div>
+                        <div className="text-sm text-on-surface-variant">
+                          <strong className="text-primary uppercase text-[10px] tracking-widest block mb-1">Reasoning</strong>
+                          {suggestions[hyp.id].reasoning}
+                        </div>
+                        
+                        <div className="flex gap-3 pt-3 mt-4 border-t border-surface-bright/20">
+                          <button 
+                            disabled={resolving === hyp.id}
+                            onClick={() => handleResolve(hyp.id, 'CORRECT')}
+                            className="flex-1 py-2 bg-status-success/10 text-status-success hover:bg-status-success hover:text-black font-bold text-xs uppercase tracking-widest rounded transition-colors flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> Correct
+                          </button>
+                          <button 
+                            disabled={resolving === hyp.id}
+                            onClick={() => handleResolve(hyp.id, 'INCORRECT')}
+                            className="flex-1 py-2 bg-status-error/10 text-status-error hover:bg-status-error hover:text-white font-bold text-xs uppercase tracking-widest rounded transition-colors flex items-center justify-center gap-2"
+                          >
+                            <XCircle className="w-4 h-4" /> Incorrect
+                          </button>
+                          <button 
+                            disabled={resolving === hyp.id}
+                            onClick={() => handleResolve(hyp.id, 'UNKNOWN')}
+                            className="flex-1 py-2 bg-surface-bright/20 text-on-surface hover:bg-surface-bright hover:text-white font-bold text-xs uppercase tracking-widest rounded transition-colors flex items-center justify-center gap-2"
+                          >
+                            <HelpCircle className="w-4 h-4" /> Unknown
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="skeleton h-24 w-full" />
+                    )}
+                  </div>
+                )}
+                
+                {hyp.outcome && hyp.outcome !== 'PENDING' && (
+                  <div className={`mt-6 p-4 rounded-xl border ${hyp.outcome === 'CORRECT' ? 'bg-status-success/10 border-status-success/30' : 'bg-status-error/10 border-status-error/30'}`}>
+                    <div className="text-xs font-mono uppercase tracking-widest mb-1 text-on-surface-variant">Final Outcome</div>
+                    <div className={`font-bold ${hyp.outcome === 'CORRECT' ? 'text-status-success' : 'text-status-error'}`}>
+                      {hyp.outcome}
+                    </div>
                   </div>
                 )}
               </div>

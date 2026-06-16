@@ -154,6 +154,45 @@ export async function getHypothesisEvaluations(hypothesisId: string): Promise<Hy
   }
 }
 
+export async function getStrategyPortfolio(): Promise<any[]> {
+  try {
+    const data = await apiFetch<{ hypotheses: any[] }>(`/strategy/hypotheses`);
+    return data.hypotheses || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getAnalystScorecard(): Promise<any> {
+  try {
+    const data = await apiFetch<any>(`/analytics/scorecard`);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function getResolutionSuggestions(hypothesisId: string): Promise<any> {
+  try {
+    const data = await apiFetch<any>(`/hypotheses/${hypothesisId}/resolution-suggestions`);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveHypothesis(hypothesisId: string, outcome: string, resolution_reason: string): Promise<any> {
+  try {
+    const data = await apiFetch<any>(`/hypotheses/${hypothesisId}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ outcome, resolution_reason })
+    });
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 // ── Reports ────────────────────────────────────────────────
 
 export async function getCompanyReports(

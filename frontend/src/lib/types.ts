@@ -234,10 +234,26 @@ export interface Hypothesis {
   type: string;
   title: string;
   description: string;
-  themes: string[];
   confidence: number;
-  status: string;
+  status: 'ACTIVE' | 'CONFIRMED' | 'REJECTED';
+  themes: string[];
+  created_at: string;
   updated_at: string;
+  
+  // Drift
+  last_evidence_at?: string;
+  confidence_velocity?: number;
+  drift_status?: 'ACTIVE' | 'AGING' | 'STALE';
+
+  // Outcome Tracking
+  outcome?: 'PENDING' | 'CORRECT' | 'INCORRECT' | 'UNKNOWN';
+  resolved_at?: string;
+  resolution_reason?: string;
+  predicted_time_horizon?: '30_days' | '90_days' | '180_days' | '365_days';
+
+  companies?: {
+    name: string;
+  };
 }
 
 export interface HypothesisEvaluation {

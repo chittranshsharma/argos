@@ -9,17 +9,21 @@ import {
   LineChart, 
   FileText, 
   Plus,
-  ShieldAlert
+  ShieldAlert,
+  Briefcase,
+  Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CORE_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/strategy", label: "Strategy Portfolio", icon: Briefcase },
   { href: "/companies", label: "Companies", icon: Activity },
   { href: "/intelligence", label: "Intelligence Stream", icon: Activity },
 ];
 
 const ANALYSIS_ITEMS = [
+  { href: "/scorecard", label: "Analyst Scorecard", icon: Target },
   { href: "/graph", label: "Knowledge Graph", icon: Network },
   { href: "/analytics", label: "Analytics", icon: LineChart },
   { href: "/reports", label: "Reports", icon: FileText },

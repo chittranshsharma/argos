@@ -226,6 +226,7 @@ export default function CompanyDetailPage() {
               <p className="text-on-surface-variant">No signals intercepted yet.</p>
             </div>
           )}
+          </div>
         </div>
 
         {/* Sidebar */}

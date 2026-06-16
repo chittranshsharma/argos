@@ -5,7 +5,8 @@ No LLM used. Pure rules engine.
 """
 
 import logging
-from app.database import get_active_hypotheses, update_hypothesis, create_hypothesis_evaluation
+from datetime import datetime, timezone
+from app.database import get_active_hypotheses, update_hypothesis, create_hypothesis_evaluation, save_alert
 from app.signals.registry import SignalSubtype
 
 logger = logging.getLogger(__name__)
@@ -73,8 +74,22 @@ class WatchlistScorer:
                 # Update hypothesis (this will also create a snapshot via DB hook)
                 update_hypothesis(hyp["id"], {
                     "confidence": new_conf,
-                    "status": status
+                    "status": status,
+                    "last_evidence_at": datetime.now(timezone.utc).isoformat()
                 })
+                
+                # Check for Contradiction (Impact <= -0.15 AND Old Confidence >= 0.75)
+                if rule["impact"] <= -0.15 and current_conf >= 0.75:
+                    save_alert({
+                        "company_id": company_id,
+                        "company_name": signal.get("company_name", "Unknown"),
+                        "alert_type": "CONTRADICTION DETECTED",
+                        "message": f"🚨 Contradiction: Strong belief '{hyp.get('title')}' contradicted by new signal '{signal.get('title')}'.",
+                        "sent_via": [],
+                        "is_sent": False,
+                        "confidence_score": current_conf,
+                        "impact_level": "Critical"
+                    })
                 
                 # Create evaluation record
                 eval_record = {

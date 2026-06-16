@@ -509,9 +509,10 @@ def api_get_signal_sources():
 @app.get("/companies/{company_id}/hypotheses")
 async def get_company_hypotheses(company_id: str):
     """Get active hypotheses for a company."""
-    from app.database import get_active_hypotheses
-    hypotheses = get_active_hypotheses(company_id)
-    return {"hypotheses": hypotheses}
+    from app.database import get_supabase_client
+    client = get_supabase_client()
+    res = client.table("hypotheses").select("*").eq("company_id", company_id).execute()
+    return {"hypotheses": res.data or []}
 
 @app.get("/hypotheses/{hypothesis_id}/evaluations")
 async def get_evaluations(hypothesis_id: str):
@@ -519,6 +520,130 @@ async def get_evaluations(hypothesis_id: str):
     from app.database import get_hypothesis_evaluations
     evaluations = get_hypothesis_evaluations(hypothesis_id)
     return {"evaluations": evaluations}
+
+@app.get("/hypotheses/{hypothesis_id}/resolution-suggestions")
+async def get_resolution_suggestions(hypothesis_id: str):
+    from app.analysis.resolution_engine import generate_resolution_suggestion
+    sugg = generate_resolution_suggestion(hypothesis_id)
+    return sugg
+
+from pydantic import BaseModel
+class ResolveRequest(BaseModel):
+    outcome: str
+    resolution_reason: str
+
+@app.post("/hypotheses/{hypothesis_id}/resolve")
+async def resolve_hypothesis(hypothesis_id: str, req: ResolveRequest):
+    from app.database import update_hypothesis
+    from datetime import datetime, timezone
+    update_hypothesis(hypothesis_id, {
+        "outcome": req.outcome,
+        "resolution_reason": req.resolution_reason,
+        "resolved_at": datetime.now(timezone.utc).isoformat(),
+        "status": "CONFIRMED" if req.outcome == "CORRECT" else ("REJECTED" if req.outcome == "INCORRECT" else "ACTIVE")
+    })
+    return {"status": "success"}
+
+@app.get("/strategy/hypotheses")
+async def get_strategy_portfolio():
+    """Get all active hypotheses across all companies, with velocity and aging computed."""
+    try:
+        from app.database import get_supabase_client
+        from datetime import datetime, timezone, timedelta
+        client = get_supabase_client()
+        
+        # Get active hypotheses
+        res_hyp = client.table("hypotheses").select("*, companies(name)").eq("status", "ACTIVE").execute()
+        hypotheses = res_hyp.data or []
+        
+        # Get snapshots from 7 days ago to compute velocity
+        seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        res_snap = client.table("hypothesis_snapshots").select("*").lte("captured_at", seven_days_ago).order("captured_at", desc=True).execute()
+        
+        snapshots = {}
+        for snap in (res_snap.data or []):
+            hid = snap["hypothesis_id"]
+            if hid not in snapshots:
+                snapshots[hid] = snap["confidence"]
+        
+        now = datetime.now(timezone.utc)
+        for hyp in hypotheses:
+            # Velocity
+            past_conf = snapshots.get(hyp["id"], hyp["confidence"])
+            hyp["confidence_velocity"] = round(hyp["confidence"] - past_conf, 2)
+            
+            # Drift Tracking
+            if hyp.get("last_evidence_at"):
+                last_ev = datetime.fromisoformat(hyp["last_evidence_at"])
+                days_old = (now - last_ev).days
+            else:
+                created = datetime.fromisoformat(hyp["created_at"])
+                days_old = (now - created).days
+            
+            hyp["drift_status"] = "ACTIVE"
+            if days_old > 45:
+                hyp["drift_status"] = "STALE"
+            elif days_old > 21:
+                hyp["drift_status"] = "AGING"
+                
+        return {"hypotheses": hypotheses}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/analytics/scorecard")
+async def get_analyst_scorecard():
+    """Scorecard for hypothesis accuracy."""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        
+        # We need all hypotheses that have an outcome
+        res = client.table("hypotheses").select("*").execute()
+        all_hyp = res.data or []
+        
+        total = len(all_hyp)
+        resolved = [h for h in all_hyp if h.get("outcome") and h["outcome"] in ["CORRECT", "INCORRECT", "UNKNOWN"]]
+        resolved_count = len(resolved)
+        
+        correct = [h for h in resolved if h["outcome"] == "CORRECT"]
+        incorrect = [h for h in resolved if h["outcome"] == "INCORRECT"]
+        
+        correct_count = len(correct)
+        incorrect_count = len(incorrect)
+        
+        if (correct_count + incorrect_count) > 0:
+            global_accuracy = correct_count / (correct_count + incorrect_count)
+        else:
+            global_accuracy = 0
+            
+        by_type = {}
+        for h in resolved:
+            t = h.get("type", "UNKNOWN")
+            if t not in by_type:
+                by_type[t] = {"correct": 0, "total": 0}
+            if h["outcome"] in ["CORRECT", "INCORRECT"]:
+                by_type[t]["total"] += 1
+                if h["outcome"] == "CORRECT":
+                    by_type[t]["correct"] += 1
+                    
+        type_accuracy = {}
+        for t, stats in by_type.items():
+            if stats["total"] > 0:
+                type_accuracy[t] = stats["correct"] / stats["total"]
+            else:
+                type_accuracy[t] = 0
+                
+        return {
+            "total_hypotheses": total,
+            "resolved_count": resolved_count,
+            "resolution_rate": resolved_count / total if total > 0 else 0,
+            "global_accuracy": global_accuracy,
+            "correct_predictions": correct_count,
+            "incorrect_predictions": incorrect_count,
+            "accuracy_by_type": type_accuracy
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/signals/feed")
 async def get_signal_feed(

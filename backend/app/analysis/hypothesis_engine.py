@@ -51,7 +51,8 @@ Return a JSON array of hypotheses. Each hypothesis must have:
 - "title": A short, declarative title (e.g., "Expanding model training infrastructure")
 - "description": A 1-2 sentence explanation.
 - "themes": A list of themes exactly matching the allowed list: {VALID_THEMES}
-- "confidence": A float between 0.40 and 0.70 (since these are just initial guesses).
+- "confidence": A float between 0.40 and 0.70.
+- "predicted_time_horizon": One of ["30_days", "90_days", "180_days", "365_days"].
 
 If the signals are just noise and no clear narrative is emerging, return an empty array [].
 
@@ -63,7 +64,8 @@ Example:
     "title": "Scaling AI Training Infrastructure",
     "description": "The company has raised capital and immediately surged hiring for GPU and distributed systems engineers.",
     "themes": ["AI_INFRASTRUCTURE", "GPU", "TRAINING", "CAPITAL_EXPANSION"],
-    "confidence": 0.65
+    "confidence": 0.65,
+    "predicted_time_horizon": "90_days"
   }}
 ]
 """
@@ -85,7 +87,8 @@ Example:
                         "description": h.get("description", ""),
                         "themes": themes,
                         "confidence": float(h.get("confidence", 0.50)),
-                        "status": "ACTIVE"
+                        "status": "ACTIVE",
+                        "predicted_time_horizon": h.get("predicted_time_horizon", "90_days")
                     }
                     db_hyp = create_hypothesis(hyp_record)
                     if db_hyp:
