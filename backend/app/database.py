@@ -452,23 +452,111 @@ def get_executive_movements(company_id: str) -> list:
 
 # ── Alerts ───────────────────────────────────────────────────
 
-# ── Stats ───────────────────────────────────────────────────
+# ── Analytics & Sources ─────────────────────────────────────
 
 def get_signals_today_count() -> int:
-    """Count signals collected today."""
     try:
         client = get_supabase_client()
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00+00:00")
-        response = (
-            client.table("signals")
-            .select("id", count="exact")
-            .gte("collected_at", today)
-            .execute()
-        )
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00Z")
+        response = client.table("signals").select("id", count="exact").gte("collected_at", today).execute()
         return response.count or 0
     except Exception as e:
-        logger.error(f"Error counting signals today: {e}")
+        logger.error(f"Error getting signals count: {e}")
         return 0
+
+# ── GitHub Snapshots ────────────────────────────────────────
+
+def get_latest_github_snapshot(company_id: str) -> dict:
+    """Return the most recent GitHub snapshot for a company."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("github_snapshots")
+            .select("*")
+            .eq("company_id", company_id)
+            .order("captured_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error getting latest github snapshot: {e}")
+        return {}
+
+def save_github_snapshot(snapshot_data: dict) -> dict:
+    """Save a new GitHub snapshot."""
+    try:
+        client = get_supabase_client()
+        response = client.table("github_snapshots").insert(snapshot_data).execute()
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error saving github snapshot: {e}")
+        return {}
+
+# ── Hypotheses & Evaluations ────────────────────────────────
+
+def get_active_hypotheses(company_id: str) -> list:
+    try:
+        client = get_supabase_client()
+        response = client.table("hypotheses").select("*").eq("company_id", company_id).eq("status", "ACTIVE").execute()
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting hypotheses: {e}")
+        return []
+
+def create_hypothesis(data: dict) -> dict:
+    try:
+        client = get_supabase_client()
+        response = client.table("hypotheses").insert(data).execute()
+        hyp = response.data[0] if response.data else {}
+        if hyp:
+            create_hypothesis_snapshot(hyp["id"], hyp["confidence"], hyp["status"])
+        return hyp
+    except Exception as e:
+        logger.error(f"Error creating hypothesis: {e}")
+        return {}
+
+def update_hypothesis(hypothesis_id: str, updates: dict) -> dict:
+    try:
+        client = get_supabase_client()
+        response = client.table("hypotheses").update(updates).eq("id", hypothesis_id).execute()
+        hyp = response.data[0] if response.data else {}
+        if hyp and ("confidence" in updates or "status" in updates):
+            create_hypothesis_snapshot(hyp["id"], hyp["confidence"], hyp["status"])
+        return hyp
+    except Exception as e:
+        logger.error(f"Error updating hypothesis: {e}")
+        return {}
+
+def create_hypothesis_snapshot(hypothesis_id: str, confidence: float, status: str) -> None:
+    try:
+        client = get_supabase_client()
+        client.table("hypothesis_snapshots").insert({
+            "hypothesis_id": hypothesis_id,
+            "confidence": confidence,
+            "status": status
+        }).execute()
+    except Exception as e:
+        logger.error(f"Error saving hypothesis snapshot: {e}")
+
+def create_hypothesis_evaluation(data: dict) -> dict:
+    try:
+        client = get_supabase_client()
+        response = client.table("hypothesis_evaluations").insert(data).execute()
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error creating hypothesis evaluation: {e}")
+        return {}
+
+def get_hypothesis_evaluations(hypothesis_id: str) -> list:
+    try:
+        client = get_supabase_client()
+        # Join with signals to get the evidence
+        response = client.table("hypothesis_evaluations").select("*, signals(*)").eq("hypothesis_id", hypothesis_id).order("created_at", desc=True).execute()
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error getting hypothesis evaluations: {e}")
+        return []
 
 
 def get_high_priority_alert_count() -> int:

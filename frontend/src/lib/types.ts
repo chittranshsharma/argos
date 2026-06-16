@@ -224,6 +224,28 @@ export interface ShareOfVoiceEntry {
 }
 
 export interface DistributionEntry {
-  range: string;
+  category: string;
   count: number;
+}
+
+export interface Hypothesis {
+  id: string;
+  company_id: string;
+  type: string;
+  title: string;
+  description: string;
+  themes: string[];
+  confidence: number;
+  status: string;
+  updated_at: string;
+}
+
+export interface HypothesisEvaluation {
+  id: string;
+  hypothesis_id: string;
+  signal_id: string;
+  impact: number;
+  reasoning: string;
+  created_at: string;
+  signals?: Signal; // The joined signal
 }

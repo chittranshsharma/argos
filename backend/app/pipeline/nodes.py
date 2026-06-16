@@ -135,9 +135,11 @@ def filter_new_signals_node(state: dict) -> dict:
     from app.pipeline.validator import SignalValidator
     from app.scoring.signal_scorer import SignalScorer
     from app.database import save_source, save_signal
+    from app.analysis.watchlist_scorer import WatchlistScorer
     
     validator = SignalValidator()
     scorer = SignalScorer()
+    watchlist_scorer = WatchlistScorer()
 
     new_signals = []
     seen_urls = set()
@@ -196,6 +198,8 @@ def filter_new_signals_node(state: dict) -> dict:
             saved = save_signal(db_signal)
             if saved:
                 db_signal["id"] = saved.get("id")
+                # Evaluate new signal against active hypotheses
+                watchlist_scorer.evaluate_signal(company_id, db_signal)
                 
             # Automatically create an Alert for High Importance signals
             if db_signal["importance"] >= 8.0:
@@ -293,6 +297,18 @@ def correlate_signals_node(state: dict) -> dict:
         if added_correlations:
             logger.info(f"Generated {len(added_correlations)} macro-level correlations for {company_name}")
             new_signals.extend(added_correlations)
+            
+            # TRIGGER A: Correlation fires -> generate hypotheses
+            try:
+                from app.analysis.hypothesis_engine import HypothesisEngine
+                HypothesisEngine().generate_hypotheses(
+                    company_id=company_id, 
+                    company_name=company_name, 
+                    recent_signals=historical_signals + added_correlations,
+                    trigger_reason="Macro-correlation detected"
+                )
+            except Exception as he:
+                logger.error(f"Failed to generate hypotheses: {he}")
             
     except Exception as e:
         logger.error(f"Signal correlation failed: {e}")

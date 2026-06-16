@@ -485,6 +485,41 @@ def api_approve_signal(signal_id: str):
         client.table("signals").update({"raw_data": raw_data}).eq("id", signal_id).execute()
     return {"status": "success"}
 
+@app.get("/api/analytics/sources")
+def api_get_signal_sources():
+    """Get breakdown of signals by agent/source."""
+    try:
+        from app.database import get_supabase_client
+        client = get_supabase_client()
+        # In supabase, we can't do a raw group by without RPC, so we fetch all raw data agents or use the agent column we added
+        # We can just fetch all signals (or last 1000) and group them in Python for simplicity
+        response = client.table("signals").select("raw_data").order("collected_at", desc=True).limit(1000).execute()
+        signals = response.data or []
+        counts = {}
+        total = len(signals)
+        for s in signals:
+            agent = s.get("raw_data", {}).get("agent", "Unknown")
+            counts[agent] = counts.get(agent, 0) + 1
+            
+        percentages = {k: round((v / total) * 100, 1) for k, v in counts.items()} if total > 0 else {}
+        return {"total": total, "counts": counts, "percentages": percentages}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/companies/{company_id}/hypotheses")
+async def get_company_hypotheses(company_id: str):
+    """Get active hypotheses for a company."""
+    from app.database import get_active_hypotheses
+    hypotheses = get_active_hypotheses(company_id)
+    return {"hypotheses": hypotheses}
+
+@app.get("/hypotheses/{hypothesis_id}/evaluations")
+async def get_evaluations(hypothesis_id: str):
+    """Get evaluations/evidence for a hypothesis."""
+    from app.database import get_hypothesis_evaluations
+    evaluations = get_hypothesis_evaluations(hypothesis_id)
+    return {"evaluations": evaluations}
+
 @app.get("/signals/feed")
 async def get_signal_feed(
     limit: int = 100,

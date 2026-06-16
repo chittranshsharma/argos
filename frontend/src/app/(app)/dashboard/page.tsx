@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStats, getSignalFeed, getShareOfVoice, getGlobalAnomalies } from "@/lib/api";
+import { getStats, getSignalFeed, getShareOfVoice, getGlobalAnomalies, getSignalSources } from "@/lib/api";
 import type { DashboardStats, Signal, ShareOfVoiceEntry, Alert } from "@/lib/types";
 import SignalFeed from "@/components/SignalFeed";
-import { Activity, Zap, FileText, Globe } from "lucide-react";
+import { Activity, Zap, FileText, Globe, Network } from "lucide-react";
 
 // ── Stat Card ──────────────────────────────────────────────
 
@@ -57,21 +57,24 @@ export default function DashboardPage() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [trending, setTrending] = useState<ShareOfVoiceEntry[]>([]);
   const [anomalies, setAnomalies] = useState<Alert[]>([]);
+  const [sources, setSources] = useState<{ percentages: Record<string, number> } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statsData, signalsData, trendingData, anomaliesData] = await Promise.all([
+        const [statsData, signalsData, trendingData, anomaliesData, sourcesData] = await Promise.all([
           getStats(),
           getSignalFeed({ limit: 20 }),
           getShareOfVoice(7), // past week
-          getGlobalAnomalies(7) // past week
+          getGlobalAnomalies(7), // past week
+          getSignalSources()
         ]);
         setStats(statsData);
         setSignals(signalsData);
         setTrending(trendingData.slice(0, 5));
         setAnomalies(anomaliesData.slice(0, 3));
+        setSources(sourcesData);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
         // Set defaults on error
@@ -221,6 +224,28 @@ export default function DashboardPage() {
                     <div className={`text-xs ${anomaly.impact_level === 'Critical' ? 'text-status-critical/70' : 'text-on-surface-variant'}`}>
                       {anomaly.company_name} - Score {anomaly.confidence_score ? `${anomaly.confidence_score}%` : 'N/A'}
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="intelligence-card p-6">
+            <h3 className="text-sm font-mono text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Network className="w-4 h-4" /> Signal Sources
+            </h3>
+            <div className="flex flex-col gap-3">
+              {loading ? (
+                <div className="text-xs text-on-surface-variant">LOADING...</div>
+              ) : !sources || Object.keys(sources.percentages).length === 0 ? (
+                <div className="text-xs text-on-surface-variant">NO SOURCE DATA DETECTED</div>
+              ) : Object.entries(sources.percentages).sort((a, b) => b[1] - a[1]).map(([agent, pct]) => (
+                <div key={agent} className="flex flex-col gap-1.5 group cursor-pointer">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-on-surface hover:text-primary transition-colors font-medium truncate max-w-[150px]">{agent}</span>
+                    <span className="font-mono text-xs text-primary">{pct}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-surface-bright/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 group-hover:bg-blue-400 transition-colors" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               ))}

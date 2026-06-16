@@ -10,6 +10,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ExecutiveMovements } from "@/components/ExecutiveMovements";
+import { StrategicAssessment } from "@/components/StrategicAssessment";
 
 export default function CompanyDetailPage() {
   const { id } = useParams() as { id: string };
@@ -207,6 +208,8 @@ export default function CompanyDetailPage() {
         {/* Main Feed */}
         <div className="lg:col-span-2 space-y-8">
           
+          <StrategicAssessment companyId={id} />
+
           <ExecutiveMovements companyId={id} />
 
           <div className="space-y-4">

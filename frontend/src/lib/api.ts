@@ -11,6 +11,8 @@ import type {
   CompanyDetailResponse,
   MonitoringStatus,
   DiscoveryResult,
+  Hypothesis,
+  HypothesisEvaluation
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
@@ -132,6 +134,26 @@ export async function getSignalFeed(params?: {
   return data.signals;
 }
 
+// ── Hypotheses ─────────────────────────────────────────────
+
+export async function getCompanyHypotheses(companyId: string): Promise<Hypothesis[]> {
+  try {
+    const data = await apiFetch<{ hypotheses: Hypothesis[] }>(`/companies/${companyId}/hypotheses`);
+    return data.hypotheses || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getHypothesisEvaluations(hypothesisId: string): Promise<HypothesisEvaluation[]> {
+  try {
+    const data = await apiFetch<{ evaluations: HypothesisEvaluation[] }>(`/hypotheses/${hypothesisId}/evaluations`);
+    return data.evaluations || [];
+  } catch {
+    return [];
+  }
+}
+
 // ── Reports ────────────────────────────────────────────────
 
 export async function getCompanyReports(
@@ -205,4 +227,8 @@ export async function getShareOfVoice(
 
 export async function getIntelligenceDistribution(): Promise<import('./types').DistributionEntry[]> {
   return await apiFetch<import('./types').DistributionEntry[]>(`/analytics/distribution`);
+}
+
+export async function getSignalSources(): Promise<{ total: number; counts: Record<string, number>; percentages: Record<string, number> }> {
+  return await apiFetch<{ total: number; counts: Record<string, number>; percentages: Record<string, number> }>(`/api/analytics/sources`);
 }
