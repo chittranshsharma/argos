@@ -39,16 +39,43 @@ class HypothesisQualityValidator:
         # If removing the company name makes it a generic startup statement without any specific nouns
         # we do a simple heuristic: if the length of words is short and no other entities are present
         if len(generic_belief.split()) < 6:
-            return {"pass": False, "reason": "Genericity check failed: Belief is too brief and generic."}
+            return {"pass": False, "reason": "GENERICITY_FAILURE: Belief is too brief and generic."}
         
         # Prediction check
         pred_words = prediction.split()
         if len(pred_words) < 5:
-            return {"pass": False, "reason": "Prediction check failed: Statement is too vague."}
+            return {"pass": False, "reason": "QUANTIFICATION_FAILURE: Statement is too vague."}
             
-        has_number = any(char.isdigit() for char in prediction)
-        if not has_number and "days" not in prediction.lower() and "months" not in prediction.lower():
-            return {"pass": False, "reason": "Prediction check failed: No measurable time horizon or quantifiable event."}
+        def contains_future_claim(pred: str) -> bool:
+            pred_lower = pred.lower()
+            future_markers = ["will", "plans to", "expected to", "set to", "scheduled to", "going to", "soon"]
+            if not any(marker in pred_lower for marker in future_markers):
+                return False
+                
+            # Weak phrases that are NOT observable events
+            weak_phrases = [
+                "will grow", "continue growing", "will improve", "plans to improve", 
+                "will expand capabilities", "will become", "will get better", 
+                "competition will increase", "models will get better",
+                "more partnerships soon", "more lawsuits will happen"
+            ]
+            if any(weak in pred_lower for weak in weak_phrases):
+                return False
+                
+            # Must contain an observable action/event
+            observable_actions = [
+                "acquire", "launch", "introduce", "restrict", "announce", "spin off",
+                "release", "sign", "delay", "open", "hire", "sunset", "implement", 
+                "refuse", "drop", "open-source", "boast", "increase", "raise", "price"
+            ]
+            if not any(action in pred_lower for action in observable_actions):
+                # If no specific observable action verb is found, fail it
+                return False
+                
+            return True
+
+        if not contains_future_claim(prediction):
+            return {"pass": False, "reason": "TIME_HORIZON_FAILURE: No verifiable future claim or externally observable event."}
 
         return {"pass": True, "reason": "Passed deterministic gates."}
 
@@ -101,8 +128,18 @@ Return ONLY valid JSON:
             if match:
                 res = json.loads(match.group())
                 # Enforce fail if any score < 3
-                if res.get("genericity_score", 0) < 3 or res.get("opposite_score", 0) < 3 or res.get("ceo_score", 0) < 3 or res.get("falsifiability_score", 0) < 3:
+                if res.get("genericity_score", 0) < 3:
                     res["pass"] = False
+                    res["reason"] = f"GENERICITY_FAILURE: {res.get('reason', '')}"
+                elif res.get("ceo_score", 0) < 3:
+                    res["pass"] = False
+                    res["reason"] = f"CEO_TEST_FAILURE: {res.get('reason', '')}"
+                elif res.get("falsifiability_score", 0) < 3:
+                    res["pass"] = False
+                    res["reason"] = f"QUANTIFICATION_FAILURE: {res.get('reason', '')}"
+                elif res.get("opposite_score", 0) < 3:
+                    res["pass"] = False
+                    res["reason"] = f"GENERICITY_FAILURE: {res.get('reason', '')}"
                 return res
         except Exception as e:
             logger.error(f"Validator LLM parse error: {e}")

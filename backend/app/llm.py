@@ -36,12 +36,24 @@ def get_gemini_llm() -> ChatGoogleGenerativeAI:
     )
 
 
+LLM_STATS = {
+    "calls": 0,
+    "total_time": 0.0,
+    "retries": 0,
+    "rate_limits": 0
+}
+
 def llm_invoke(llm, prompt: str) -> str:
     """
     Invoke an LLM with retry logic.
     Returns the text content of the response.
     Falls back to Gemini if Groq fails due to rate limits.
     """
+    import time
+    global LLM_STATS
+    LLM_STATS["calls"] += 1
+    t0 = time.time()
+    
     try:
         @retry(
             stop=stop_after_attempt(3),
@@ -49,9 +61,16 @@ def llm_invoke(llm, prompt: str) -> str:
             retry=retry_if_exception_type(Exception)
         )
         def _invoke_primary():
-            return llm.invoke([HumanMessage(content=prompt)])
+            try:
+                return llm.invoke([HumanMessage(content=prompt)])
+            except Exception as e:
+                LLM_STATS["retries"] += 1
+                if "429" in str(e) or "Too Many Requests" in str(e):
+                    LLM_STATS["rate_limits"] += 1
+                raise e
             
         response = _invoke_primary()
+        LLM_STATS["total_time"] += (time.time() - t0)
         return response.content
     except Exception as e:
         logger.warning(f"Primary LLM failed ({e}). Falling back to Gemini...")
@@ -65,12 +84,18 @@ def llm_invoke(llm, prompt: str) -> str:
         def _invoke_fallback():
             import time
             time.sleep(2)
-            return gemini.invoke([HumanMessage(content=prompt)])
+            try:
+                return gemini.invoke([HumanMessage(content=prompt)])
+            except Exception as e:
+                LLM_STATS["retries"] += 1
+                raise e
             
         try:
             response = _invoke_fallback()
+            LLM_STATS["total_time"] += (time.time() - t0)
             return response.content
         except Exception as e:
+            LLM_STATS["total_time"] += (time.time() - t0)
             logger.warning(f"Fallback LLM failed ({e}). Using mock response for testing...")
             if "Executive Summary" in prompt or "key developments" in prompt.lower() or "report" in prompt.lower():
                 return "## Intelligence Report Unavailable\n\n### Executive Summary\nDue to LLM API rate limits, the automated summarization engine could not generate a full analysis for this cycle. The system continues to monitor and store raw signals securely.\n\n### Key Signals\n* The system successfully scraped and stored the signals, but could not synthesize them into a report.\n\n### Recommended Actions\n* Check the Analytics dashboard and Threat Matrix for numerical insights.\n* Review the raw signal stream in the Intelligence feed."

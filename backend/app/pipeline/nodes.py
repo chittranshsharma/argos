@@ -88,7 +88,7 @@ def collect_signals_node(state: dict) -> dict:
     raw_signals = []
     agent_stats = {}
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         future_to_name = {}
         for name, func, kwargs in tasks:
             future = executor.submit(func, **kwargs)

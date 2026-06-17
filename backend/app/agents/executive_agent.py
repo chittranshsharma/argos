@@ -28,7 +28,7 @@ class ExecutiveAgent:
     def collect(self, company_name: str, company_id: str) -> list[dict]:
         """Fetch and extract executive movements."""
         articles = self._fetch_articles(company_name)
-        if not articles:
+        if not articles or not self._check_relevance(articles, company_name):
             return []
 
         # Deduplication engine
@@ -226,6 +226,26 @@ class ExecutiveAgent:
                 relevant.append(line)
                 
         return "\n".join(relevant[:10])
+
+    def _check_relevance(self, articles: list[dict], company_name: str) -> bool:
+        """Evaluate if the article batch contains relevant signals before deep scraping."""
+        content = "\n".join([f"- {a.get('title', '')}: {a.get('description', '')}" for a in articles[:10]])
+        prompt = f"""Analyze the following news headlines about {company_name}.
+Determine if there is ANY realistic indication of a major executive movement (e.g. CEO, CTO, VP, Founder appointed, stepped down, resigned).
+Reply ONLY with YES or NO.
+
+Headlines:
+{content}
+"""
+        try:
+            from app.llm import get_groq_llm, llm_invoke
+            llm = get_groq_llm()
+            response = llm_invoke(llm, prompt).strip().upper()
+            return "YES" in response
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Relevance check failed: {e}")
+            return True # Fail open
 
     def _extract_executive_events(self, text: str, company_name: str, url: str) -> list[dict]:
         if len(text.strip()) < 50:

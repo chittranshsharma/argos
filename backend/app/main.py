@@ -150,65 +150,56 @@ async def health_check():
 async def create_company(request: AddCompanyRequest, background_tasks: BackgroundTasks):
     """
     Add a new company to track.
-    Auto-discovers sources and triggers first monitoring run.
+    Auto-discovers sources and triggers first monitoring run asynchronously.
     """
-    # Check for duplicates
-    from app.database import get_all_companies
+    from app.database import get_all_companies, add_company, get_supabase_client
     existing_companies = get_all_companies()
     for comp in existing_companies:
         if comp["name"].lower() == request.name.lower():
             raise HTTPException(status_code=400, detail="Company already exists")
 
-    # Discover sources
-    discoverer = AutoDiscoverer()
-    sources = discoverer.discover(request.name, request.website)
-
-    # Build company record
     company_data = {
         "name": request.name,
         "website": request.website,
-        **sources,
+        "news_keywords": [request.name]
     }
 
-    # Save to Supabase
     try:
         company = add_company(company_data)
     except Exception as e:
         logger.error(f"Failed to save company: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save company: {str(e)}")
 
-    # Discover competitors in background
+    def run_onboarding_async(comp: dict, req_website: str):
+        try:
+            discoverer = AutoDiscoverer()
+            sources = discoverer.discover(comp["name"], req_website)
+            client = get_supabase_client()
+            client.table("companies").update(sources).eq("id", comp["id"]).execute()
+            comp.update(sources)
+        except Exception as e:
+            logger.error(f"Async AutoDiscoverer failed: {e}")
+            
+        try:
+            from app.discovery.competitor_mapper import CompetitorMapper
+            mapper = CompetitorMapper()
+            competitors = mapper.discover_competitors(comp["name"], req_website)
+            mapper.store_competitor_relationships(comp["name"], comp["id"], competitors)
+            client = get_supabase_client()
+            client.table("companies").update({
+                "competitors": [c["name"] for c in competitors]
+            }).eq("id", comp["id"]).execute()
+        except Exception as e:
+            logger.error(f"Background competitor discovery failed: {e}")
+            
+        run_monitoring_for_company(comp)
+
     if company:
-        import threading
-        from app.database import get_supabase_client
-        from app.discovery.competitor_mapper import CompetitorMapper
-
-        def discover_and_store_competitors(company_id_str: str, c_name: str, c_web: str):
-            try:
-                mapper = CompetitorMapper()
-                competitors = mapper.discover_competitors(c_name, c_web)
-                mapper.store_competitor_relationships(c_name, company_id_str, competitors)
-                # Save competitors list to company record
-                client = get_supabase_client()
-                client.table("companies").update({
-                    "competitors": [c["name"] for c in competitors]
-                }).eq("id", company_id_str).execute()
-            except Exception as e:
-                logger.error(f"Background competitor discovery failed: {e}")
-
-        threading.Thread(
-            target=discover_and_store_competitors, 
-            args=(company["id"], request.name, request.website),
-            daemon=True
-        ).start()
-
-    # Trigger first monitoring run in background
-    if company:
-        background_tasks.add_task(run_monitoring_for_company, company)
+        background_tasks.add_task(run_onboarding_async, company, request.website)
 
     return {
         "company": company,
-        "discovered_sources": sources,
+        "status": "DISCOVERED"
     }
 
 
@@ -223,7 +214,7 @@ async def list_companies():
 async def get_company(company_id: str):
     """Return company details with latest report, recent signals, and score breakdown."""
     try:
-        from app.database import get_company_by_id, get_reports, get_signals, get_supabase_client
+        from app.database import get_company_by_id, get_reports, get_signals, get_supabase_client, get_partnership_count
         
         company = get_company_by_id(company_id)
         if not company:
@@ -257,12 +248,15 @@ async def get_company(company_id: str):
         except Exception as e:
             logger.warning(f"Failed to fetch score breakdown for {company_id}: {e}")
 
+        partnerships_count = get_partnership_count(company_id)
+
         return {
             "company": company,
             "latest_report": reports[0] if reports else None,
             "recent_signals": signals,
             "graph_data": graph_data,
-            "score_breakdown": score_breakdown
+            "score_breakdown": score_breakdown,
+            "partnerships_count": partnerships_count
         }
     except HTTPException:
         raise

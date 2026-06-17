@@ -103,7 +103,7 @@ def save_signal(signal_data: dict) -> dict:
         db_signal = signal_data.copy()
         raw_data = db_signal.get("raw_data", {})
         
-        for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+        for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload", "review_status"]:
             if key in db_signal:
                 raw_data[key] = db_signal.pop(key)
                 
@@ -596,6 +596,22 @@ def get_total_reports_count() -> int:
         return response.count or 0
     except Exception as e:
         logger.error(f"Error counting reports: {e}")
+        return 0
+
+def get_partnership_count(company_id: str) -> int:
+    """Count total partnerships detected for a company."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("signals")
+            .select("id", count="exact")
+            .eq("company_id", company_id)
+            .eq("signal_type", "PARTNERSHIP")
+            .execute()
+        )
+        return response.count or 0
+    except Exception as e:
+        logger.error(f"Error counting partnerships: {e}")
         return 0
 
 # ── Analytics Snapshots ─────────────────────────────────────
