@@ -461,9 +461,24 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                 actions_data = json.loads(match.group())
 
                 # Record candidate count + first 3 examples BEFORE any validation
+                self.metrics["candidate_actions_generated"] = len(actions_data)
+                self.metrics["candidate_examples"] = [
+                    {
+                        "action": a.get("action", "?"),
+                        "preview": (
+                            a.get("belief", a.get("reasoning", ""))[:200]
+                        )
+                    }
+                    for a in actions_data[:3]
+                ]
 
-
-                ────────────────────────────────
+                # ── Early-exit guard ────────────────────────────────────────
+                # If the LLM returned [] (empty array, including mock fallback),
+                # skip all validator and DB calls immediately.
+                if not actions_data:
+                    logger.info(f"HypothesisEngine: LLM returned empty actions for {company_name}.")
+                    return []
+                # ────────────────────────────────────────────────────────────
 
                 # Use the most recent signal ID for evaluations
                 anchor_signal_id = recent_signals[0].get("id") if recent_signals else None
@@ -488,7 +503,7 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         if not val_res.get("pass", False):
                             total_actions_rejected += 1
                             self.metrics["update_regression_failures"] += 1
-                            
+                            self.metrics["dedup_rejected"] += 1
                             save_analytics_snapshot("rejected_hypothesis_update", {
                                 "action": action,
                                 "existing_belief": existing.get("title"),
@@ -519,7 +534,7 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                             update_hypothesis(hyp_id, {"confidence": new_confidence})
                             # update_hypothesis creates snapshot internally
                             self.metrics["confidence_updates_applied"] += 1
-                            
+                            self.metrics["final_updated"] += 1
                         
                         created_or_updated.append(existing)
                         
@@ -536,7 +551,7 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
 
                         if not val_res.get("pass", False):
                             total_actions_rejected += 1
-                            
+                            self.metrics["validator_rejected"] += 1
                             if g_score < 3: self.metrics["genericity_failures"] += 1
                             if c_score < 3: self.metrics["ceo_test_failures"] += 1
                             if f_score < 3: self.metrics["falsifiability_failures"] += 1
@@ -574,13 +589,22 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         if db_hyp:
                             created_or_updated.append(db_hyp)
                             self.metrics["hypotheses_created"] += 1
-                            
+                            self.metrics["final_created"] += 1
 
                 if total_actions_evaluated > 0:
                     self.metrics["quality_rejection_rate"] = round(total_actions_rejected / total_actions_evaluated, 2)
                     self.metrics["average_quality_score"] = round(quality_score_sum / total_actions_evaluated, 2)
 
-logger.info(f"Engine produced {self.metrics['hypotheses_created']} creations and {self.metrics['hypotheses_deduplicated']} updates for {company_name}. Rejection rate: {self.metrics['quality_rejection_rate']}")
+                logger.info(
+                    f"[{company_name}] Funnel: "
+                    f"signals={self.metrics['signals_seen']} → "
+                    f"compressed={self.metrics['signals_after_compression']} → "
+                    f"candidates={self.metrics['candidate_actions_generated']} → "
+                    f"validator_rejected={self.metrics['validator_rejected']} | "
+                    f"dedup_rejected={self.metrics['dedup_rejected']} → "
+                    f"final_created={self.metrics['final_created']} | "
+                    f"final_updated={self.metrics['final_updated']}"
+                )
                 return created_or_updated
             return []
         except Exception as e:
