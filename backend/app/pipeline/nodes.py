@@ -320,7 +320,7 @@ def correlate_signals_node(state: dict) -> dict:
                 hypotheses = he.generate_hypotheses(
                     company_id=company_id, 
                     company_name=company_name, 
-                    recent_signals=historical_signals + high_importance_signals,
+                    recent_signals=high_importance_signals + historical_signals,
                     trigger_reason="High importance signals detected"
                 )
                 hypotheses_from_direct_signals = len(hypotheses)
