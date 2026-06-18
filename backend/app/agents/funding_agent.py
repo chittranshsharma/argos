@@ -275,6 +275,7 @@ class FundingAgent:
         name_parts = company_name.lower().split()
         
         has_company = any(part in content for part in name_parts)
+        # Check if the text matches funding keywords to avoid expensive LLM calls on irrelevant data
         has_keyword = any(kw in content for kw in keywords)
         
         return has_company and has_keyword
