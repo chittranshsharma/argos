@@ -260,6 +260,7 @@ class ExecutiveAgent:
         return has_company and has_keyword
 
     def _extract_executive_events(self, text: str, company_name: str) -> list[dict]:
+        """Extract executive events from a batch of articles to optimize context window and LLM calls."""
         if len(text.strip()) < 50:
             return []
             
