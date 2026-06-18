@@ -84,7 +84,22 @@ class ExecutiveAgent:
                 "source_count": source_count
             }
             
-
+            # --- Graph Persistence ---
+            try:
+                from app.memory.graph_db import GraphDB
+                graph_db = GraphDB()
+                if payload.get("movement_type") in ["appointed", "joined", "hired", "promoted", "board_appointed"]:
+                    if payload.get("person"):
+                        graph_db.merge_relationship(
+                            source=payload["person"],
+                            relation="WORKS_AT",
+                            target=company_name,
+                            company_name=company_name
+                        )
+                graph_db.close()
+            except Exception as e:
+                logger.error(f"ExecutiveAgent GraphDB update failed: {e}")
+            # --------------------------
 
             # FINAL PERSISTENCE GUARD - SIGNAL VALIDATION V2
             if not payload.get("person") or not payload.get("role"):
