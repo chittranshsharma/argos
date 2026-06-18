@@ -241,6 +241,9 @@ class HypothesisEngine:
            fewer than 2 signals per side. No validator, no extra LLM call.
            Unsupported tensions simply don't pass.
         """
+        # We employ an evidence-first strategy here:
+        # Instead of allowing the model to invent tensions and then search for evidence,
+        # we force the model to identify evidence first and then deduce the tension.
         prompt = f"""You are a strategic analyst. You have been given intelligence signals about COMPANY_X.
 
 Your task is to identify COMPETING FORCES — pairs of signals that pull in opposite directions.
