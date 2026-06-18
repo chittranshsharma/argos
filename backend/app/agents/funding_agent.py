@@ -1,5 +1,5 @@
 """
-Argos — Funding Agent
+Argos â€” Funding Agent
 Executes high-intent boolean queries to detect and classify funding and acquisition events.
 Uses NewsAPI (with Google News fallback) and full HTML parsing to strictly subtype events.
 """
@@ -240,23 +240,15 @@ class FundingAgent:
 
     def _check_relevance(self, articles: list[dict], company_name: str) -> bool:
         """Evaluate if the article batch contains relevant signals before deep scraping."""
-        content = "\n".join([f"- {a.get('title', '')}: {a.get('description', '')}" for a in articles[:10]])
-        prompt = f"""Analyze the following news headlines about {company_name}.
-Determine if there is ANY realistic indication of funding, acquisition, IPO, investment, or raising capital.
-Reply ONLY with YES or NO.
-
-Headlines:
-{content}
-"""
-        try:
-            from app.llm import get_groq_llm, llm_invoke
-            llm = get_groq_llm()
-            response = llm_invoke(llm, prompt).strip().upper()
-            return "YES" in response
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Relevance check failed: {e}")
-            return True # Fail open
+        content = "
+".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
+        keywords = ["raised", "funding", "series", "seed", "round", "valuation", "investor", "capital", "acquired", "acquisition", "ipo"]
+        name_parts = company_name.lower().split()
+        
+        has_company = any(part in content for part in name_parts)
+        has_keyword = any(kw in content for kw in keywords)
+        
+        return has_company and has_keyword
 
     def _extract_funding_events(self, text: str, company_name: str, url: str) -> list[dict]:
         if len(text.strip()) < 50:
