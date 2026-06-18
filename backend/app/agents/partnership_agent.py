@@ -351,6 +351,7 @@ class PartnershipsAgent:
         name_parts = company_name.lower().split()
         
         has_company = any(part in content for part in name_parts)
+        # Verify that common partnership/alliance terms are present in the batch metadata
         has_keyword = any(kw in content for kw in keywords)
         
         return has_company and has_keyword
