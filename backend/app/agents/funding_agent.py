@@ -1,5 +1,5 @@
 """
-Argos â€” Funding Agent
+Argos — Funding Agent
 Executes high-intent boolean queries to detect and classify funding and acquisition events.
 Uses NewsAPI (with Google News fallback) and full HTML parsing to strictly subtype events.
 """
@@ -30,8 +30,9 @@ class FundingAgent:
         if not articles or not self._check_relevance(articles, company_name):
             return []
 
-        # Deduplication engine
+        # Batch extraction engine
         raw_events = []
+        batch_texts = []
         for article in articles:
             html = self._fetch_html(article["url"])
             if html:
@@ -46,9 +47,12 @@ class FundingAgent:
             if not paragraphs.strip():
                 continue
             
-            import time
-            time.sleep(1.5)
-            events = self._extract_funding_events(paragraphs, company_name, article["url"])
+            block = f"[URL: {article['url']}]\n{paragraphs.strip()}"
+            batch_texts.append(block)
+
+        if batch_texts:
+            combined_text = "\n\n".join(batch_texts)
+            events = self._extract_funding_events(combined_text, company_name)
             raw_events.extend(events)
 
         # Deduplicate and aggregate
@@ -80,12 +84,38 @@ class FundingAgent:
                 "valuation": base_event.get("valuation"),
                 "lead_investors": base_event.get("lead_investors", []),
                 "round_type": base_event.get("round_type"),
-                "announcement_date": base_event.get("announcement_date"),
                 "target_company": base_event.get("target_company"),
+                "announcement_date": base_event.get("announcement_date", datetime.now(timezone.utc).isoformat()[:10]),
+                "evidence_url": base_event.get("url"),
                 "source_urls": source_urls,
                 "source_count": source_count
             }
             
+            # --- Graph Persistence ---
+            try:
+                from app.memory.graph_db import GraphDB
+                graph_db = GraphDB()
+                if payload.get("subtype") == "ACQUISITION" and payload.get("target_company"):
+                    graph_db.merge_relationship(
+                        source=company_name,
+                        relation="ACQUIRED",
+                        target=payload["target_company"].strip(),
+                        company_name=company_name
+                    )
+                elif payload.get("lead_investors"):
+                    for inv in payload["lead_investors"]:
+                        if isinstance(inv, str) and inv.strip():
+                            graph_db.merge_relationship(
+                                source=inv.strip(),
+                                relation="INVESTED_IN",
+                                target=company_name,
+                                company_name=company_name
+                            )
+                graph_db.close()
+            except Exception as e:
+                logger.error(f"FundingAgent GraphDB update failed: {e}")
+            # --------------------------
+
             # FINAL PERSISTENCE GUARD - SIGNAL VALIDATION V2
             subtype = str(payload.get("subtype", "")).upper()
             has_value_signal = payload.get("amount") or payload.get("valuation") or payload.get("lead_investors") or payload.get("target_company")
@@ -240,8 +270,7 @@ class FundingAgent:
 
     def _check_relevance(self, articles: list[dict], company_name: str) -> bool:
         """Evaluate if the article batch contains relevant signals before deep scraping."""
-        content = "
-".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
+        content = "\n".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
         keywords = ["raised", "funding", "series", "seed", "round", "valuation", "investor", "capital", "acquired", "acquisition", "ipo"]
         name_parts = company_name.lower().split()
         
@@ -250,18 +279,19 @@ class FundingAgent:
         
         return has_company and has_keyword
 
-    def _extract_funding_events(self, text: str, company_name: str, url: str) -> list[dict]:
+    def _extract_funding_events(self, text: str, company_name: str) -> list[dict]:
         if len(text.strip()) < 50:
             return []
             
-        prompt = f"""Analyze the following text from a news article about {company_name}.
+        prompt = f"""Analyze the following texts from news articles about {company_name}.
 Extract any major funding, investment, or acquisition events.
 
 CRITICAL RULE: ONLY extract actual funding events (e.g. Series A, Seed, Acquisition, IPO). Do not extract general news or unverified rumors. If no funding event is described, return an empty array [].
+Each article text starts with [URL: <url>]. You MUST include the exact URL corresponding to the extracted event in the "url" field.
 
 Allowed Subtypes: SEED, SERIES_A, SERIES_B, SERIES_C, IPO, ACQUISITION, DEBT
 
-Text:
+Text Batch:
 {text}
 
 Return ONLY valid JSON like:
@@ -273,7 +303,7 @@ Return ONLY valid JSON like:
     "round_type": "Series A",
     "target_company": "",
     "announcement_date": "October 15, 2023",
-    "url": "{url}"
+    "url": "https://example.com/article"
 }}]
 If no funding events are found, return []."""
 
@@ -288,14 +318,13 @@ If no funding events are found, return []."""
                 for e in events:
                     subtype = e.get("subtype", "").upper().strip()
                     if subtype not in allowed_subtypes:
-                        logger.warning({"reason": "invalid_subtype", "url": url, "llm_output": e})
+                        logger.warning({"reason": "invalid_subtype", "llm_output": e})
                         continue
                     
                     has_value_signal = e.get("amount") or e.get("valuation") or e.get("lead_investors") or e.get("target_company")
                     if not has_value_signal:
-                        logger.warning({"reason": "missing_value_indicators", "url": url, "llm_output": e})
+                        logger.warning({"reason": "missing_value_indicators", "llm_output": e})
                         continue
-                    e["url"] = url
                     valid_events.append(e)
                 return valid_events
             return []
