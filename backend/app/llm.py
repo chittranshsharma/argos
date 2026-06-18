@@ -16,13 +16,20 @@ from app.config import GROQ_API_KEY, GROQ_MODEL, GOOGLE_API_KEY, GEMINI_MODEL
 logger = logging.getLogger(__name__)
 
 
-def get_groq_llm() -> ChatGroq:
-    """Create a Groq LLM instance with llama-3.3-70b-versatile."""
+def get_groq_llm(max_tokens: int = 500) -> ChatGroq:
+    """Create a Groq LLM instance with llama-3.3-70b-versatile.
+
+    Args:
+        max_tokens: Token budget for the response. Validators use the default
+                    (500 — enough for a single scored JSON object). The
+                    HypothesisEngine uses 2000 to output 5 tensions or
+                    hypotheses without truncating mid-JSON.
+    """
     return ChatGroq(
         api_key=GROQ_API_KEY,
         model_name=GROQ_MODEL,
         temperature=0.1,
-        max_tokens=500,
+        max_tokens=max_tokens,
     )
 
 
