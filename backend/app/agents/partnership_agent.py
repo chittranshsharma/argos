@@ -1,5 +1,5 @@
 """
-Argos â€” Partnerships Agent
+Argos — Partnerships Agent
 Executes high-intent boolean queries to detect strategic alliances and contracts.
 Uses NewsAPI (with Google News fallback) and full HTML parsing.
 
@@ -23,7 +23,7 @@ from app.memory.graph_db import GraphDB
 
 logger = logging.getLogger(__name__)
 
-# â”€â”€ Entity Normalization Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Entity Normalization Map ──────────────────────────────────
 # Canonical form -> list of known aliases (all lowercased)
 ENTITY_ALIASES: dict[str, list[str]] = {
     "AWS": ["amazon web services", "aws", "amazon aws", "amazon cloud"],
@@ -103,8 +103,9 @@ class PartnershipsAgent:
         if not articles or not self._check_relevance(articles, company_name):
             return []
 
-        # Raw event extraction
+        # Batch extraction engine
         raw_events = []
+        batch_texts = []
         for article in articles:
             html = self._fetch_html(article["url"])
             paragraphs = self._extract_relevant_paragraphs(html, company_name) if html else ""
@@ -113,12 +114,15 @@ class PartnershipsAgent:
             if len(paragraphs.strip()) < 30:
                 continue
 
-            import time
-            time.sleep(1.5)
-            events = self._extract_partnership_events(paragraphs, company_name, article["url"])
+            block = f"[URL: {article['url']}]\n{paragraphs.strip()}"
+            batch_texts.append(block)
+
+        if batch_texts:
+            combined_text = "\n\n".join(batch_texts)
+            events = self._extract_partnership_events(combined_text, company_name)
             raw_events.extend(events)
 
-        # â”€â”€ Normalization & filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Normalization & filtering ──────────────────────────
         self_refs_removed = 0
         duplicates_collapsed = 0
         raw_partner_names = []
@@ -152,7 +156,7 @@ class PartnershipsAgent:
             if len(events) > 1:
                 duplicates_collapsed += len(events) - 1
 
-        # â”€â”€ Build signals from deduplicated map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Build signals from deduplicated map ───────────────
         signals = []
         graph_db = GraphDB()
 
@@ -222,9 +226,9 @@ class PartnershipsAgent:
 
         logger.info(
             f"PartnershipsAgent [{company_name}]: "
-            f"{len(raw_events)} raw events â†’ "
-            f"{self_refs_removed} self-refs removed â†’ "
-            f"{duplicates_collapsed} duplicates collapsed â†’ "
+            f"{len(raw_events)} raw events → "
+            f"{self_refs_removed} self-refs removed → "
+            f"{duplicates_collapsed} duplicates collapsed → "
             f"{len(signals)} final signals"
         )
 
@@ -342,8 +346,7 @@ class PartnershipsAgent:
 
     def _check_relevance(self, articles: list[dict], company_name: str) -> bool:
         """Evaluate if the article batch contains relevant signals before deep scraping."""
-        content = "
-".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
+        content = "\n".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
         keywords = ["partner", "partnership", "collaboration", "alliance", "agreement", "integration", "joint venture", "reseller"]
         name_parts = company_name.lower().split()
         
@@ -352,17 +355,19 @@ class PartnershipsAgent:
         
         return has_company and has_keyword
 
-    def _extract_partnership_events(self, text: str, company_name: str, url: str) -> list[dict]:
+    def _extract_partnership_events(self, text: str, company_name: str) -> list[dict]:
         if len(text.strip()) < 50:
             return []
 
-        prompt = f"""Analyze the following text about {company_name}.
+        prompt = f"""Analyze the following texts from news articles about {company_name}.
 Extract any strategic partnerships, cloud alliances, distribution agreements, integrations, joint ventures, or reseller relationships.
 
 CRITICAL RULE: Only extract real external partnerships. Do not extract the company partnering with itself.
+Each article text starts with [URL: <url>]. You MUST include the exact URL corresponding to the extracted event in the "url" field.
+
 Allowed Subtypes: STRATEGIC_PARTNERSHIP, CLOUD_PARTNERSHIP, DISTRIBUTION_PARTNERSHIP, TECHNOLOGY_INTEGRATION, JOINT_VENTURE, RESELLER, AI_PARTNERSHIP, GOVERNMENT_CONTRACT
 
-Text:
+Text Batch:
 {text}
 
 Return ONLY valid JSON like:
@@ -373,7 +378,7 @@ Return ONLY valid JSON like:
     "industry": "Cloud Computing",
     "duration": "multi-year",
     "announcement_date": "2024-03-01",
-    "url": "{url}"
+    "url": "https://example.com/article"
 }}]
 If no events are found, return []."""
 
@@ -395,7 +400,6 @@ If no events are found, return []."""
                         continue
                     if not e.get("partner_name"):
                         continue
-                    e["url"] = url
                     valid_events.append(e)
                 return valid_events
             return []
