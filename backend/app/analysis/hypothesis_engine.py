@@ -7,6 +7,7 @@ import logging
 import json
 import re
 from app.llm import get_groq_llm, llm_invoke
+from app.analysis.signal_compressor import compress_signals
 from app.database import (
     create_hypothesis,
     get_active_and_confirmed_hypotheses,
@@ -31,7 +32,13 @@ VALID_THEMES = [
 
 class HypothesisQualityValidator:
     def __init__(self):
-        self.llm = get_groq_llm()
+        self._llm = None  # Lazy-loaded — constructor must not make network calls
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            self._llm = get_groq_llm()
+        return self._llm
 
     def run_create_deterministic_gate(self, belief: str, prediction: str, company_name: str) -> dict:
         # Genericity check: Replacing company name
@@ -188,9 +195,25 @@ Return ONLY valid JSON:
 
 class HypothesisEngine:
     def __init__(self):
-        self.llm = get_groq_llm()
+        # 2000 tokens: enough for 5 tensions (with evidence) or 5 hypotheses
+        # in a single response without mid-JSON truncation.
+        # Validator keeps its own 500-token instance (single scored object).
+        self.llm = get_groq_llm(max_tokens=2000)
         self.validator = HypothesisQualityValidator()
         self.metrics = {
+            # ── Funnel (top → bottom) ──────────────────────────────────
+            "signals_seen": 0,                 # raw signals passed in
+            "signals_after_compression": 0,    # after compress_signals
+            "tensions_extracted": 0,            # competing forces found (step 1)
+            "tensions_discarded_no_evidence": 0, # tensions dropped: < 2 signals per side
+            "tension_examples": [],             # first 2 tension previews
+            "candidate_actions_generated": 0,  # actions LLM proposed (pre-validation)
+            "candidate_examples": [],            # first 3 raw previews (belief or reasoning)
+            "validator_rejected": 0,           # CREATE actions killed by quality validator
+            "dedup_rejected": 0,               # UPDATE actions killed by regression validator
+            "final_created": 0,                # hypotheses written to DB
+            "final_updated": 0,                # hypotheses confidence-updated in DB
+            # ── Legacy / derived ──────────────────────────────────────
             "hypotheses_created": 0,
             "hypotheses_deduplicated": 0,
             "evaluations_created": 0,
@@ -203,6 +226,91 @@ class HypothesisEngine:
             "average_quality_score": 0.0
         }
 
+    def _extract_tensions(self, context_str: str, company_name: str) -> list[dict]:
+        """
+        Step 1 of 2-step generation (D.7B).
+
+        Two key design decisions:
+
+        1. BLIND EXTRACTION: The company name is hidden from the prompt (replaced
+           with COMPANY_X). This tests whether the model was anchoring on its
+           training knowledge of the company label rather than reading the signals.
+           Signal content still contains the company name naturally.
+
+        2. EVIDENCE GATEKEEPING: Tensions are discarded in Python if they cite
+           fewer than 2 signals per side. No validator, no extra LLM call.
+           Unsupported tensions simply don't pass.
+        """
+        prompt = f"""You are a strategic analyst. You have been given intelligence signals about COMPANY_X.
+
+Your task is to identify COMPETING FORCES — pairs of signals that pull in opposite directions.
+
+A tension exists when:
+- One group of signals implies COMPANY_X is accelerating or committing to a direction
+- A DIFFERENT group of signals implies constraint, resistance, or an opposing pressure
+- Both directions cannot be fully optimized simultaneously
+
+Do NOT invent a tension first and then search for evidence.
+Work in this exact order:
+
+STEP 1: Scan the signal list. Select 2-4 signal titles where COMPANY_X is clearly pursuing or accelerating something specific.
+STEP 2: Scan the REMAINING signals. Select 2-4 DIFFERENT signal titles that show constraint, pushback, or a contradictory direction.
+STEP 3: Only after selecting both groups, name the force each group represents.
+
+Recent Signals:
+{context_str}
+
+Find up to 5 DISTINCT tension pairs. Each pair must draw from different signals.
+
+Return ONLY valid JSON. Evidence fields come FIRST to reflect the reasoning order:
+[
+  {{
+    "evidence_a": ["<Exact signal title 1>", "<Exact signal title 2>"],
+    "evidence_b": ["<Exact signal title 3>", "<Exact signal title 4>"],
+    "force_a": "<The direction COMPANY_X is pursuing, inferred from evidence_a only>",
+    "force_b": "<The constraint or opposing pressure, inferred from evidence_b only>"
+  }}
+]
+
+Rules:
+- If you cannot find 2 real signal titles per side, skip that tension.
+- Do not reuse the same signal title in multiple tensions.
+- If no valid tensions exist, return [].
+- Do not add any text outside the JSON array."""
+        raw_tensions = []
+        try:
+            response = llm_invoke(self.llm, prompt)
+            match = re.search(r"\[.*\]", response, re.DOTALL)
+            if match:
+                parsed = json.loads(match.group())
+                if isinstance(parsed, list):
+                    raw_tensions = parsed
+        except Exception as e:
+            logger.error(f"[{company_name}] Tension extraction failed: {e}")
+            return []
+
+        # Evidence gatekeeping: discard tensions with < 2 signals per side.
+        # No LLM, no validator — pure Python filter.
+        valid, discarded = [], 0
+        for t in raw_tensions:
+            ev_a = [s for s in t.get("evidence_a", []) if s.strip()]
+            ev_b = [s for s in t.get("evidence_b", []) if s.strip()]
+            if len(ev_a) >= 2 and len(ev_b) >= 2:
+                valid.append(t)
+            else:
+                discarded += 1
+                logger.debug(
+                    f"[{company_name}] Discarded tension (insufficient evidence): "
+                    f"A={t.get('force_a', '')[:60]} | ev_a={len(ev_a)} ev_b={len(ev_b)}"
+                )
+
+        self.metrics["tensions_discarded_no_evidence"] = discarded
+        logger.info(
+            f"[{company_name}] Tension extraction: {len(raw_tensions)} raw, "
+            f"{discarded} discarded (no evidence), {len(valid)} valid."
+        )
+        return valid
+
     def generate_hypotheses(self, company_id: str, company_name: str, recent_signals: list[dict], trigger_reason: str):
         """
         Takes recent signals, compares them to existing ACTIVE and CONFIRMED hypotheses,
@@ -213,6 +321,19 @@ class HypothesisEngine:
 
         # Reset metrics for this run
         self.metrics = {
+            # ── Funnel (top → bottom) ──────────────────────────────────
+            "signals_seen": 0,
+            "signals_after_compression": 0,
+            "tensions_extracted": 0,
+            "tensions_discarded_no_evidence": 0,
+            "tension_examples": [],
+            "candidate_actions_generated": 0,
+            "candidate_examples": [],
+            "validator_rejected": 0,
+            "dedup_rejected": 0,
+            "final_created": 0,
+            "final_updated": 0,
+            # ── Legacy / derived ──────────────────────────────────────
             "hypotheses_created": 0,
             "hypotheses_deduplicated": 0,
             "evaluations_created": 0,
@@ -237,32 +358,74 @@ class HypothesisEngine:
             for h in existing_hyps:
                 existing_hyps_str += f"- ID: {h['id']}\n  Title: {h['title']}\n  Description: {h['description']}\n  Confidence: {h['confidence']}\n\n"
 
+        # Track funnel entry points
+        self.metrics["signals_seen"] = len(recent_signals)
+
+        # Compress signals to observations — one centralized layer, deterministic
+        compressed = compress_signals(recent_signals[:50])
+        self.metrics["signals_after_compression"] = len(compressed)
+
         # Prepare context
         context_str = ""
-        for s in recent_signals[:30]:
-            context_str += f"- [{s.get('signal_type', 'UNKNOWN')}] {s.get('title', 'Event')}: {s.get('content', '')}\n"
+        for s in compressed:
+            context_str += f"- [{s.get('signal_type', 'UNKNOWN')}] {s.get('title', 'Event')}: {s.get('summary', '')}\n"
+
+        # ── Step 1: Extract tensions ─────────────────────────────────────────
+        # Force the model to name competing forces BEFORE generating any hypothesis.
+        # If this returns [], we stop here — that's the diagnostic signal.
+        tensions = self._extract_tensions(context_str, company_name)
+        self.metrics["tensions_extracted"] = len(tensions)
+        self.metrics["tension_examples"] = [
+            {
+                "force_a": t.get("force_a", "")[:150],
+                "force_b": t.get("force_b", "")[:150],
+                "evidence_a": t.get("evidence_a", [])[:2],
+                "evidence_b": t.get("evidence_b", [])[:2],
+            }
+            for t in tensions[:2]
+        ]
+
+        if not tensions:
+            logger.info(
+                f"[{company_name}] Tension extraction returned 0 tensions. "
+                f"Skipping hypothesis generation. "
+                f"(signals_seen={self.metrics['signals_seen']}, "
+                f"compressed={self.metrics['signals_after_compression']})"
+            )
+            return []
+
+        # Build tension context for step 2
+        tensions_str = ""
+        for i, t in enumerate(tensions, 1):
+            ev_a = "; ".join(t.get("evidence_a", []))
+            ev_b = "; ".join(t.get("evidence_b", []))
+            tensions_str += (
+                f"\nTension {i}:\n"
+                f"  Pursuing  (A): {t.get('force_a', '')}\n"
+                f"  Competing (B): {t.get('force_b', '')}\n"
+                f"  Evidence A: {ev_a}\n"
+                f"  Evidence B: {ev_b}\n"
+            )
+        # ─────────────────────────────────────────────────────────────────────
 
         prompt = f"""
 You are the Argos Intelligence Hypothesis Engine.
-Your job is NOT to cluster topics. Your job is to extract underlying STRATEGIC TENSIONS from recent intelligence events for {company_name}.
 The trigger for this generation is: {trigger_reason}
 
-A valid hypothesis MUST explain:
-1. What management is optimizing for.
-2. What they are sacrificing (the trade-off).
-3. What observable event should happen next if the belief is correct.
-
-Recent Signals:
-{context_str}
+A strategic analyst has already identified the following COMPETING FORCES for {company_name}:
+{tensions_str}
 
 EXISTING HYPOTHESES for {company_name}:
 {existing_hyps_str}
 
-Based on the Recent Signals, what strategic tensions emerge? 
-For EACH distinct tension you find:
-1. Compare it to the EXISTING HYPOTHESES.
-2. If the tension essentially describes the SAME strategic intent or risk as an existing hypothesis, output an "UPDATE" action.
-3. If the tension is MATERIALLY DISTINCT and fundamentally new, output a "CREATE" action.
+For EACH tension above, determine:
+1. Does this tension map onto an EXISTING hypothesis (same strategic intent)? → output an UPDATE action.
+2. Is this tension a genuinely NEW belief not yet captured? → output a CREATE action.
+
+For every CREATE, the hypothesis MUST:
+- Name what management is BETTING ON (force_a prevailing)
+- Name what they are SACRIFICING to make that bet (force_b being deprioritized)
+- Predict one SPECIFIC, OBSERVABLE EVENT that would confirm the bet within 30-365 days
 
 Return a JSON array of actions.
 
@@ -270,28 +433,25 @@ To update an existing hypothesis (DEDUPLICATION):
 {{
   "action": "UPDATE",
   "hypothesis_id": "<exact ID of the existing hypothesis>",
-  "confidence_adjustment": <float between -0.2 and 0.2 representing how these signals impact the hypothesis>,
-  "reasoning": "<1-2 sentences explaining why the signals support or refute this existing hypothesis>"
+  "confidence_adjustment": <float between -0.2 and 0.2>,
+  "reasoning": "<1-2 sentences on why this tension supports or refutes the existing hypothesis>"
 }}
 
 To create a NEW hypothesis:
 {{
   "action": "CREATE",
-  "type": "EXPANSION", // One of [EXPANSION, RISK, PRODUCT_PIVOT, ACQUISITION_TARGET, GEOGRAPHIC_EXPANSION, GO_TO_MARKET_EXPANSION]
-  "belief": "<A declarative strategic belief. E.g., 'Company is sacrificing margin to win enterprise distribution'>",
-  "supporting_signals": ["<Short summary of supporting signal 1>", "<Short summary of supporting signal 2>"],
-  "counter_evidence": ["<Any evidence that contradicts this belief, or 'None observed'>"],
-  "strategic_tradeoff": "<What is being sacrificed for what gain?>",
-  "prediction": "<What specific, observable event should happen next if this is true?>",
-  "themes": [<List of themes exactly matching: {VALID_THEMES}>],
-  "confidence": <float between 0.40 and 0.70>,
-  "predicted_time_horizon": "90_days" // One of ["30_days", "90_days", "180_days", "365_days"]
+  "type": "EXPANSION",
+  "belief": "<Declarative bet. E.g., '{company_name} is sacrificing margin to win enterprise distribution'>",
+  "supporting_signals": ["<Evidence A>", "<Evidence B>"],
+  "counter_evidence": ["<Evidence B, or None observed>"],
+  "strategic_tradeoff": "<force_a gain> at the cost of <force_b loss>",
+  "prediction": "<Specific observable event that confirms the bet>",
+  "themes": [<Themes from: {VALID_THEMES}>],
+  "confidence": <float 0.40–0.70>,
+  "predicted_time_horizon": "90_days"
 }}
 
-If the signals are just noise and no clear strategic tension emerges, return an empty array [].
-Do NOT create duplicate hypotheses. Be strict about matching existing ones.
-
-Output ONLY a valid JSON array.
+Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
 """
         created_or_updated = []
         try:
@@ -299,7 +459,12 @@ Output ONLY a valid JSON array.
             match = re.search(r"\[\s*\{.*\}\s*\]", response, re.DOTALL)
             if match:
                 actions_data = json.loads(match.group())
-                
+
+                # Record candidate count + first 3 examples BEFORE any validation
+
+
+                ────────────────────────────────
+
                 # Use the most recent signal ID for evaluations
                 anchor_signal_id = recent_signals[0].get("id") if recent_signals else None
 
@@ -323,6 +488,7 @@ Output ONLY a valid JSON array.
                         if not val_res.get("pass", False):
                             total_actions_rejected += 1
                             self.metrics["update_regression_failures"] += 1
+                            
                             save_analytics_snapshot("rejected_hypothesis_update", {
                                 "action": action,
                                 "existing_belief": existing.get("title"),
@@ -353,6 +519,7 @@ Output ONLY a valid JSON array.
                             update_hypothesis(hyp_id, {"confidence": new_confidence})
                             # update_hypothesis creates snapshot internally
                             self.metrics["confidence_updates_applied"] += 1
+                            
                         
                         created_or_updated.append(existing)
                         
@@ -369,6 +536,7 @@ Output ONLY a valid JSON array.
 
                         if not val_res.get("pass", False):
                             total_actions_rejected += 1
+                            
                             if g_score < 3: self.metrics["genericity_failures"] += 1
                             if c_score < 3: self.metrics["ceo_test_failures"] += 1
                             if f_score < 3: self.metrics["falsifiability_failures"] += 1
@@ -406,12 +574,13 @@ Output ONLY a valid JSON array.
                         if db_hyp:
                             created_or_updated.append(db_hyp)
                             self.metrics["hypotheses_created"] += 1
+                            
 
                 if total_actions_evaluated > 0:
                     self.metrics["quality_rejection_rate"] = round(total_actions_rejected / total_actions_evaluated, 2)
                     self.metrics["average_quality_score"] = round(quality_score_sum / total_actions_evaluated, 2)
 
-                logger.info(f"Engine produced {self.metrics['hypotheses_created']} creations and {self.metrics['hypotheses_deduplicated']} updates for {company_name}. Rejection rate: {self.metrics['quality_rejection_rate']}")
+logger.info(f"Engine produced {self.metrics['hypotheses_created']} creations and {self.metrics['hypotheses_deduplicated']} updates for {company_name}. Rejection rate: {self.metrics['quality_rejection_rate']}")
                 return created_or_updated
             return []
         except Exception as e:
