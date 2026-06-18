@@ -476,8 +476,8 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                 ]
 
                 # ── Early-exit guard ────────────────────────────────────────
-                # If the LLM returned [] (empty array, including mock fallback),
-                # skip all validator and DB calls immediately.
+                # If the LLM returned an empty array, we early exit here
+                # to prevent unnecessary processing, validation, and DB calls.
                 if not actions_data:
                     logger.info(f"HypothesisEngine: LLM returned empty actions for {company_name}.")
                     return []
