@@ -1,5 +1,5 @@
 """
-Argos â€” Executive Agent
+Argos — Executive Agent
 Executes high-intent boolean queries to detect and classify executive movements.
 Uses NewsAPI (with Google News fallback) and full HTML parsing to strictly subtype events.
 """
@@ -31,8 +31,9 @@ class ExecutiveAgent:
         if not articles or not self._check_relevance(articles, company_name):
             return []
 
-        # Deduplication engine
+        # Batch extraction engine
         raw_events = []
+        batch_texts = []
         for article in articles:
             html = self._fetch_html(article["url"])
             if html:
@@ -47,9 +48,12 @@ class ExecutiveAgent:
             if not paragraphs.strip():
                 continue
             
-            import time
-            time.sleep(1.5)
-            events = self._extract_executive_events(paragraphs, company_name, article["url"])
+            block = f"[URL: {article['url']}]\n{paragraphs.strip()}"
+            batch_texts.append(block)
+
+        if batch_texts:
+            combined_text = "\n\n".join(batch_texts)
+            events = self._extract_executive_events(combined_text, company_name)
             raw_events.extend(events)
 
         # Deduplicate and aggregate
@@ -80,6 +84,8 @@ class ExecutiveAgent:
                 "source_count": source_count
             }
             
+
+
             # FINAL PERSISTENCE GUARD - SIGNAL VALIDATION V2
             if not payload.get("person") or not payload.get("role"):
                 logger.warning(f"ExecutiveAgent rejected signal due to missing person/role: {json.dumps(payload)}")
@@ -229,8 +235,7 @@ class ExecutiveAgent:
 
     def _check_relevance(self, articles: list[dict], company_name: str) -> bool:
         """Evaluate if the article batch contains relevant signals before deep scraping."""
-        content = "
-".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
+        content = "\n".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
         keywords = ["ceo", "cfo", "cto", "coo", "cro", "founder", "president", "vp", "board", "appointed", "joins", "resigns", "steps down", "promotion", "hired", "departed", "leaving"]
         name_parts = company_name.lower().split()
         
@@ -239,18 +244,19 @@ class ExecutiveAgent:
         
         return has_company and has_keyword
 
-    def _extract_executive_events(self, text: str, company_name: str, url: str) -> list[dict]:
+    def _extract_executive_events(self, text: str, company_name: str) -> list[dict]:
         if len(text.strip()) < 50:
             return []
             
-        prompt = f"""Analyze the following text from a news article about {company_name}.
+        prompt = f"""Analyze the following texts from news articles about {company_name}.
 Extract any major executive movements (e.g., Founder, CEO, CTO, VP Engineering, Head of AI, Board Member).
 
 CRITICAL RULE: Do NOT extract current executives giving opinions or quotes. ONLY extract actual role changes, hirings, and departures. If the text merely mentions an existing executive without an actual job movement, return an empty array [].
+Each article text starts with [URL: <url>]. You MUST include the exact URL corresponding to the extracted event in the "url" field.
 
 Allowed Subtypes: CEO_APPOINTED, CEO_DEPARTED, CTO_APPOINTED, CTO_DEPARTED, CFO_APPOINTED, CFO_DEPARTED, COO_APPOINTED, COO_DEPARTED, CRO_APPOINTED, CRO_DEPARTED, FOUNDER_APPOINTED, FOUNDER_DEPARTED, LEADERSHIP_APPOINTED, LEADERSHIP_DEPARTED, BOARD_CHANGE
 
-Text:
+Text Batch:
 {text}
 
 Return ONLY valid JSON like:
@@ -263,7 +269,7 @@ Return ONLY valid JSON like:
     "new_company": "Unknown",
     "effective_date": "October 15, 2023",
     "reason_for_leaving": "To pursue other opportunities",
-    "url": "{url}"
+    "url": "https://example.com/article"
 }}]
 If no events are found, return []."""
 
@@ -279,12 +285,11 @@ If no events are found, return []."""
                 for e in events:
                     move = e.get("movement_type", "").lower().strip()
                     if move in invalid_moves or move not in allowed_movements:
-                        logger.warning({"reason": "missing_or_invalid_movement_keyword", "url": url, "llm_output": e})
+                        logger.warning({"reason": "missing_or_invalid_movement_keyword", "llm_output": e})
                         continue
                     if not e.get("person") or not e.get("role"):
-                        logger.warning({"reason": "missing_person_or_role", "url": url, "llm_output": e})
+                        logger.warning({"reason": "missing_person_or_role", "llm_output": e})
                         continue
-                    e["url"] = url
                     valid_events.append(e)
                 return valid_events
             return []
