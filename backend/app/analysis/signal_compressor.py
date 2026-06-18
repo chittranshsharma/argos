@@ -1,4 +1,7 @@
 """
+Signal Compressor Module for Argos Competitive Intelligence
+"""
+"""
 Argos — Signal Compressor
 A centralized, deterministic layer that compresses raw signals into
 compact observations before feeding them to the HypothesisEngine.
