@@ -1,5 +1,5 @@
 """
-Argos — Partnerships Agent
+Argos â€” Partnerships Agent
 Executes high-intent boolean queries to detect strategic alliances and contracts.
 Uses NewsAPI (with Google News fallback) and full HTML parsing.
 
@@ -23,7 +23,7 @@ from app.memory.graph_db import GraphDB
 
 logger = logging.getLogger(__name__)
 
-# ── Entity Normalization Map ──────────────────────────────────
+# â”€â”€ Entity Normalization Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Canonical form -> list of known aliases (all lowercased)
 ENTITY_ALIASES: dict[str, list[str]] = {
     "AWS": ["amazon web services", "aws", "amazon aws", "amazon cloud"],
@@ -118,7 +118,7 @@ class PartnershipsAgent:
             events = self._extract_partnership_events(paragraphs, company_name, article["url"])
             raw_events.extend(events)
 
-        # ── Normalization & filtering ──────────────────────────
+        # â”€â”€ Normalization & filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         self_refs_removed = 0
         duplicates_collapsed = 0
         raw_partner_names = []
@@ -152,7 +152,7 @@ class PartnershipsAgent:
             if len(events) > 1:
                 duplicates_collapsed += len(events) - 1
 
-        # ── Build signals from deduplicated map ───────────────
+        # â”€â”€ Build signals from deduplicated map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         signals = []
         graph_db = GraphDB()
 
@@ -222,9 +222,9 @@ class PartnershipsAgent:
 
         logger.info(
             f"PartnershipsAgent [{company_name}]: "
-            f"{len(raw_events)} raw events → "
-            f"{self_refs_removed} self-refs removed → "
-            f"{duplicates_collapsed} duplicates collapsed → "
+            f"{len(raw_events)} raw events â†’ "
+            f"{self_refs_removed} self-refs removed â†’ "
+            f"{duplicates_collapsed} duplicates collapsed â†’ "
             f"{len(signals)} final signals"
         )
 
@@ -342,23 +342,15 @@ class PartnershipsAgent:
 
     def _check_relevance(self, articles: list[dict], company_name: str) -> bool:
         """Evaluate if the article batch contains relevant signals before deep scraping."""
-        content = "\n".join([f"- {a.get('title', '')}: {a.get('description', '')}" for a in articles[:10]])
-        prompt = f"""Analyze the following news headlines about {company_name}.
-Determine if there is ANY realistic indication of a strategic partnership, alliance, joint venture, or integration.
-Reply ONLY with YES or NO.
-
-Headlines:
-{content}
-"""
-        try:
-            from app.llm import get_groq_llm, llm_invoke
-            llm = get_groq_llm()
-            response = llm_invoke(llm, prompt).strip().upper()
-            return "YES" in response
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Relevance check failed: {e}")
-            return True # Fail open
+        content = "
+".join([f"{a.get('title', '')} {a.get('description', '')}" for a in articles[:10]]).lower()
+        keywords = ["partner", "partnership", "collaboration", "alliance", "agreement", "integration", "joint venture", "reseller"]
+        name_parts = company_name.lower().split()
+        
+        has_company = any(part in content for part in name_parts)
+        has_keyword = any(kw in content for kw in keywords)
+        
+        return has_company and has_keyword
 
     def _extract_partnership_events(self, text: str, company_name: str, url: str) -> list[dict]:
         if len(text.strip()) < 50:
