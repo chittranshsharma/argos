@@ -32,13 +32,22 @@ interface KnowledgeGraphProps {
   data: GraphData;
   width?: number;
   height?: number;
+  companies?: { id: string; name: string }[];
 }
 
 export default function KnowledgeGraph({
   data,
   width = 400,
   height = 300,
+  companies = [],
 }: KnowledgeGraphProps) {
+  const router = useRouter();
+  // Build name → id map for click navigation
+  const companyNameMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of companies) m[c.name.toLowerCase()] = c.id;
+    return m;
+  }, [companies]);
   // Transform data for react-force-graph
   const graphData = useMemo(() => {
     if (!data?.nodes?.length) {
