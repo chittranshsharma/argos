@@ -6,6 +6,29 @@ import type { DashboardStats, Signal, ShareOfVoiceEntry, Alert } from "@/lib/typ
 import SignalFeed from "@/components/SignalFeed";
 import { Activity, Zap, FileText, Globe, Network, Brain, AlertTriangle, TrendingUp, RefreshCw, ArrowRight, Shield, Database, Plus, Search, Loader2, ExternalLink } from "lucide-react";
 
+function InsightCard({ title, value, description, icon, trend, status, companyId, companyName }: InsightCardProps) {
+  return (
+    <div className="bg-surface-lowest/50 border border-surface-bright/20 rounded-2xl p-6 flex flex-col justify-between h-full hover:border-primary/30 transition-all duration-200">
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-mono uppercase tracking-widest text-on-surface-variant">{title}</span>
+          <div className="p-2 rounded-lg bg-surface-bright/10 text-primary">{icon}</div>
+        </div>
+        <h3 className="text-lg font-bold text-on-surface mb-1 leading-snug">{value}</h3>
+        <p className="text-sm text-on-surface-variant mb-4">{description}</p>
+      </div>
+      {companyId && (
+        <Link
+          href={`/companies/${companyId}`}
+          className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-hover font-medium transition-colors mt-auto pt-2 group"
+        >
+          View Entity <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      )}
+    </div>
+  );
+}
+
 interface InsightCardProps {
   title: string;
   value: string;
