@@ -160,6 +160,20 @@ export default function CompanyDetailPage() {
         </button>
       </div>
 
+      {/* Scanning banner: shown only when no data collected yet */}
+      {(!company.last_monitored || signalsCount === 0) && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-sm text-on-surface-variant">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+          </span>
+          <span>
+            Argos is collecting intelligence on this company.
+            <span className="text-on-surface"> Initial signals and hypotheses usually appear within a few minutes.</span>
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <div className="intelligence-card p-4 border-l-2 border-l-primary relative group cursor-default">
           <div className="text-xs font-mono text-on-surface-variant uppercase tracking-widest mb-1">Activity Score</div>
