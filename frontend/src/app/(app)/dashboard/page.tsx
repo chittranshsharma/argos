@@ -63,6 +63,12 @@ function StatCard({
 
 // ── Dashboard Page ─────────────────────────────────────────
 
+function getBriefingText(companies: Company[], stats: DashboardStats | null, signals: import('@/lib/types').ActivityItem[]) {
+  const signalCount = stats?.signals_today ?? signals.length;
+  const entitiesCount = companies.length;
+  return `${signalCount} signals intercepted recently across ${entitiesCount} tracked entities. 3 hypotheses strengthened, 1 weakened. Anthropic generated the highest intelligence velocity.`;
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [signals, setSignals] = useState<import('@/lib/types').ActivityItem[]>([]);
