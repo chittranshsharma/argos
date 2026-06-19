@@ -126,7 +126,11 @@ export default function CompanyDetailPage() {
               </span>
             </div>
             <div className="text-sm text-on-surface-variant mt-1 font-medium">
-              Global Technology & Services
+              {company.website
+                ? new URL(company.website.startsWith('http') ? company.website : `https://${company.website}`).hostname.replace(/^www\./, '')
+                : company.github_org
+                ? `github.com/${company.github_org}`
+                : 'Private Company'}
             </div>
           <div className="flex items-center gap-4 mt-2 text-sm text-on-surface-variant">
             {company.website && (
