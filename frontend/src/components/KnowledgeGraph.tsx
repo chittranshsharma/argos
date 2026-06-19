@@ -112,16 +112,16 @@ export default function KnowledgeGraph({
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-argos-border bg-argos-surface/50">
+    <div ref={containerRef} className="rounded-xl overflow-hidden border border-surface-bright/20 bg-surface-lowest/50">
       {/* Legend */}
-      <div className="flex flex-wrap gap-2 px-3 pt-3 pb-1">
+      <div className="flex flex-wrap gap-3 px-4 pt-3 pb-2">
         {Object.entries(TYPE_COLORS).map(([type, color]) => (
-          <div key={type} className="flex items-center gap-1">
+          <div key={type} className="flex items-center gap-1.5">
             <span
               className="h-2 w-2 rounded-full"
               style={{ backgroundColor: color }}
             />
-            <span className="text-[10px] text-argos-text-dim">{type}</span>
+            <span className="text-[10px] text-on-surface-variant font-mono">{type}</span>
           </div>
         ))}
       </div>
