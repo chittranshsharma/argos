@@ -200,12 +200,25 @@ export default function AddCompanyModal({
               })}
             </div>
 
-            <button
-              onClick={handleClose}
-              className="w-full rounded-xl bg-argos-accent hover:bg-argos-accent-hover px-4 py-3 text-sm font-semibold text-white transition-all duration-200"
-            >
-              Done
-            </button>
+            <div className="flex flex-col gap-3">
+              {addedCompanyId && (
+                <button
+                  onClick={() => {
+                    handleClose();
+                    router.push(`/companies/${addedCompanyId}`);
+                  }}
+                  className="w-full rounded-xl bg-argos-accent hover:bg-argos-accent-hover px-4 py-3 text-sm font-semibold text-white transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  View Company Intelligence →
+                </button>
+              )}
+              <button
+                onClick={handleClose}
+                className="w-full rounded-xl bg-argos-surface-2 hover:bg-argos-surface-3 border border-argos-border px-4 py-3 text-sm font-medium text-argos-text-muted transition-all duration-200"
+              >
+                Done
+              </button>
+            </div>
           </>
         )}
       </div>
