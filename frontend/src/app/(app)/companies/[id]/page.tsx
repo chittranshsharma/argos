@@ -234,6 +234,18 @@ export default function CompanyDetailPage() {
           
           <StrategicAssessment companyId={id} allCompanies={allCompanies} />
 
+          {/* Knowledge Graph Card */}
+          {company.graph_data && (
+            <div className="mt-8 border border-surface-bright/20 rounded-2xl bg-surface-lowest/50 p-6">
+              <h3 className="text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
+                <Network className="w-5 h-5 text-primary" /> Entity Relationship Map
+              </h3>
+              <div className="h-[400px] w-full">
+                <KnowledgeGraph data={company.graph_data} height={380} companies={allCompanies} />
+              </div>
+            </div>
+          )}
+
           <ExecutiveMovements companyId={id} />
 
           <div className="space-y-4">
