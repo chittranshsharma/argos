@@ -63,6 +63,7 @@ export default function AddCompanyModal({
     setName("");
     setWebsite("");
     setDiscovered(null);
+    setAddedCompanyId(null);
     setError(null);
     setStep("input");
     onClose();
