@@ -5,7 +5,13 @@ import { getCompanyHypotheses, getHypothesisEvaluations, getResolutionSuggestion
 import type { Hypothesis, HypothesisEvaluation } from "@/lib/types";
 import { Target, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Activity, AlertCircle, ExternalLink, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
 
-export function StrategicAssessment({ companyId }: { companyId: string }) {
+export function StrategicAssessment({ companyId, allCompanies = [] }: { companyId: string; allCompanies?: { id: string; name: string }[] }) {
+  const formatTheme = (theme: string) => {
+    return theme
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  };
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
