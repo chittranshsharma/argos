@@ -232,7 +232,7 @@ export default function CompanyDetailPage() {
         {/* Main Feed */}
         <div className="lg:col-span-2 space-y-8">
           
-          <StrategicAssessment companyId={id} />
+          <StrategicAssessment companyId={id} allCompanies={allCompanies} />
 
           <ExecutiveMovements companyId={id} />
 
