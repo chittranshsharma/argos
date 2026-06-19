@@ -124,7 +124,8 @@ export default function CompaniesPage() {
                       <div className="flex gap-2 text-on-surface-variant">
                         {company.website && <span title="Website"><Globe className="w-4 h-4" /></span>}
                         {company.github_org && <span title="GitHub"><Activity className="w-4 h-4" /></span>}
-                        <span title="News Intel"><FileText className="w-4 h-4" /></span>
+                        {company.news_keywords?.length > 0 && <span title="News Intel"><FileText className="w-4 h-4" /></span>}
+                        {company.linkedin_url && <span title="LinkedIn"><ExternalLink className="w-4 h-4" /></span>}
                       </div>
                     </td>
                     <td className="py-4 px-6">
