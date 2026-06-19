@@ -100,7 +100,7 @@ export function StrategicAssessment({ companyId, allCompanies = [] }: { companyI
                 <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">{hyp.description}</p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {hyp.themes.map(t => (
-                    <span key={t} className="text-xs text-on-surface-variant bg-surface-lowest px-2 py-1 rounded">#{t}</span>
+                    <span key={t} className="text-xs text-on-surface-variant bg-surface-lowest px-2 py-1 rounded">#{formatTheme(t)}</span>
                   ))}
                 </div>
               </div>
@@ -151,9 +151,26 @@ export function StrategicAssessment({ companyId, allCompanies = [] }: { companyI
                           </div>
                           <p className="text-sm text-on-surface mt-1">{ev.reasoning}</p>
                           {ev.signals && (
-                            <div className="mt-2 text-xs text-on-surface-variant border-t border-surface-bright/10 pt-2 flex items-center gap-1.5">
-                              <ExternalLink className="w-3 h-3" />
-                              <span className="truncate">{ev.signals.title}</span>
+                            <div className="mt-2 pt-2 border-t border-surface-bright/10 flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant shrink-0 bg-surface-bright/20 px-1.5 py-0.5 rounded">
+                                  {getSourceLabel(ev.signals)}
+                                </span>
+                                {ev.signals.url ? (
+                                  <a
+                                    href={ev.signals.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 truncate transition-colors group/link"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span className="truncate">{ev.signals.title}</span>
+                                    <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover/link:opacity-100" />
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-on-surface-variant truncate">{ev.signals.title}</span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
