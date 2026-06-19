@@ -38,6 +38,7 @@ export default function CompanyDetailPage() {
         setAnalytics(analyticsData);
         const myRank = rankingsData.find(r => r.id === id)?.rank;
         if (myRank) setRank(myRank);
+        setAllCompanies(rankingsData.map(r => ({ id: r.id, name: r.company })));
       } catch (err) {
         console.error("Failed to load company detail", err);
       } finally {
