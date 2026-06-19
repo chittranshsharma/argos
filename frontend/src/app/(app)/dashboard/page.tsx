@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getStats, getSignalFeed, getShareOfVoice, getGlobalAnomalies, getSignalSources } from "@/lib/api";
 import type { DashboardStats, Signal, ShareOfVoiceEntry, Alert } from "@/lib/types";
 import SignalFeed from "@/components/SignalFeed";
-import { Activity, Zap, FileText, Globe, Network } from "lucide-react";
+import { Activity, Zap, FileText, Globe, Network, Brain, AlertTriangle, TrendingUp, RefreshCw, ArrowRight, Shield, Database, Plus, Search, Loader2, ExternalLink } from "lucide-react";
 
 // ── Stat Card ──────────────────────────────────────────────
 
