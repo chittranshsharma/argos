@@ -169,6 +169,21 @@ export default function KnowledgeGraph({
         cooldownTicks={100}
         enableZoomInteraction={true}
         enablePanInteraction={true}
+        onNodeClick={(node: Record<string, unknown>) => {
+          const name = (node.name as string) || "";
+          const id = companyNameMap[name.toLowerCase()];
+          if (id) router.push(`/companies/${id}`);
+        }}
+        nodePointerAreaPaint={(node: Record<string, unknown>, color: string, ctx: CanvasRenderingContext2D) => {
+          const name = (node.name as string) || "";
+          const isTracked = !!companyNameMap[name.toLowerCase()];
+          if (isTracked) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(node.x as number, node.y as number, 8, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }}
       />
     </div>
   );
