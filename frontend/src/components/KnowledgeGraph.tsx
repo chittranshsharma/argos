@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { GraphData } from "@/lib/types";
 
 // Dynamic import with SSR disabled for canvas-based rendering
