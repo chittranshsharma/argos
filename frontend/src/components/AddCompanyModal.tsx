@@ -48,6 +48,7 @@ export default function AddCompanyModal({
     try {
       const result = await addCompany(name.trim(), website.trim() || undefined);
       setDiscovered(result.discovered_sources);
+      setAddedCompanyId(result.company?.id || null);
       setStep("discovered");
       onSuccess();
     } catch (err: unknown) {
