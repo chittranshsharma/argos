@@ -6,6 +6,17 @@ import type { DashboardStats, Signal, ShareOfVoiceEntry, Alert } from "@/lib/typ
 import SignalFeed from "@/components/SignalFeed";
 import { Activity, Zap, FileText, Globe, Network, Brain, AlertTriangle, TrendingUp, RefreshCw, ArrowRight, Shield, Database, Plus, Search, Loader2, ExternalLink } from "lucide-react";
 
+interface InsightCardProps {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+  trend?: string;
+  status?: string;
+  companyId?: string;
+  companyName?: string;
+}
+
 // ── Stat Card ──────────────────────────────────────────────
 
 function StatCard({
