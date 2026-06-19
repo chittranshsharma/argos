@@ -19,6 +19,7 @@ export default function CompanyDetailPage() {
   const [activityFeed, setActivityFeed] = useState<import('@/lib/types').ActivityItem[]>([]);
   const [analytics, setAnalytics] = useState<CompanyAnalytics | null>(null);
   const [rank, setRank] = useState<number | null>(null);
+  const [allCompanies, setAllCompanies] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [monitoring, setMonitoring] = useState(false);
 
