@@ -33,7 +33,9 @@ export default function AddCompanyModal({
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
   const [discovered, setDiscovered] = useState<DiscoveryResult | null>(null);
+  const [addedCompanyId, setAddedCompanyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   const [step, setStep] = useState<"input" | "discovered">("input");
 
   if (!isOpen) return null;
