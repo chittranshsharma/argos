@@ -1,3 +1,6 @@
+/**
+ * StrategicAssessment component with outcome resolution controls and evidence logs
+ */
 "use client";
 
 import { useEffect, useState } from "react";
