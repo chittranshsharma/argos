@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { addCompany } from "@/lib/api";
 import type { DiscoveryResult } from "@/lib/types";
 
