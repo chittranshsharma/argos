@@ -101,10 +101,10 @@ export default function KnowledgeGraph({
 
   if (!graphData.nodes.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-argos-text-dim py-8">
-        <div className="text-3xl mb-2 opacity-30">◎</div>
+      <div className="flex flex-col items-center justify-center h-full text-on-surface-variant py-8">
+        <div className="text-3xl mb-2 opacity-20">◎</div>
         <p className="text-xs">Knowledge graph is empty</p>
-        <p className="text-[10px] mt-1 opacity-60">
+        <p className="text-[10px] mt-1 opacity-50">
           Entities will appear after analysis
         </p>
       </div>
