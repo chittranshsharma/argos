@@ -48,6 +48,23 @@ export default function KnowledgeGraph({
     for (const c of companies) m[c.name.toLowerCase()] = c.id;
     return m;
   }, [companies]);
+  // Container ref + responsive width
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [graphWidth, setGraphWidth] = useState(width);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setGraphWidth(el.clientWidth);
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setGraphWidth(Math.floor(entry.contentRect.width));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Transform data for react-force-graph
   const graphData = useMemo(() => {
     if (!data?.nodes?.length) {
@@ -112,7 +129,7 @@ export default function KnowledgeGraph({
       {/* Graph */}
       <ForceGraph2D
         graphData={graphData}
-        width={width}
+        width={graphWidth || width}
         height={height}
         backgroundColor="transparent"
         nodeRelSize={6}
