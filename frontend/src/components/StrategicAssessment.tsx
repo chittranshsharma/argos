@@ -6,6 +6,12 @@ import type { Hypothesis, HypothesisEvaluation } from "@/lib/types";
 import { Target, TrendingUp, TrendingDown, ChevronDown, ChevronRight, Activity, AlertCircle, ExternalLink, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
 
 export function StrategicAssessment({ companyId, allCompanies = [] }: { companyId: string; allCompanies?: { id: string; name: string }[] }) {
+  const getSourceLabel = (signal: any) => {
+    if (signal.source_type) return signal.source_type;
+    if (signal.url && signal.url.includes("github.com")) return "GITHUB";
+    return "NEWS";
+  };
+
   const formatTheme = (theme: string) => {
     return theme
       .split("_")
