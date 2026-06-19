@@ -156,10 +156,10 @@ export default function AddCompanyModal({
             {/* Discovery Results */}
             <div className="mb-6">
               <h2 className="text-xl font-bold text-argos-text">
-                Sources Discovered ✓
+                Company Added ✓
               </h2>
               <p className="text-sm text-argos-text-dim mt-1">
-                {name} has been added and monitoring has started
+                Intelligence is being generated in the background.
               </p>
             </div>
 
