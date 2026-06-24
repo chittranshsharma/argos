@@ -87,7 +87,7 @@ def run_audit():
         if sources.get("github_org"):
             tasks.append(("github", GitHubAgent().collect, {"github_org": sources["github_org"], "company_name": name, "company_id": mock_company_id}))
         if sources.get("news_keywords"):
-            tasks.append(("news", NewsAgent().collect, {"keywords": sources["news_keywords"], "company_name": name, "company_id": mock_company_id}))
+            tasks.append(("news", NewsAgent().collect, {"keywords": sources["news_keywords"], "company_name": name, "company_id": mock_company_id, "website": website}))
         tasks.append(("hackernews", HackerNewsAgent().collect, {"company_name": name, "company_id": mock_company_id}))
         if sources.get("careers_url"):
             tasks.append(("jobs", JobsAgent().collect, {"careers_url": sources["careers_url"], "company_name": name, "company_id": mock_company_id}))

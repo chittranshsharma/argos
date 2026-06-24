@@ -47,7 +47,8 @@ def collect_signals_node(state: dict) -> dict:
     if company_data.get("news_keywords"):
         tasks.append(("news", NewsAgent().collect,
                       {"keywords": company_data["news_keywords"],
-                       "company_name": company_name, "company_id": company_id}))
+                       "company_name": company_name, "company_id": company_id,
+                       "website": company_data.get("website")}))
 
     tasks.append(("hackernews", HackerNewsAgent().collect,
                   {"company_name": company_name, "company_id": company_id}))

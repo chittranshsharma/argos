@@ -15,7 +15,7 @@ company = get_company_by_id('ab4d1d45-dc2a-441f-8d85-c65e1d14cb99')
 news_agent = NewsAgent()
 hn_agent = HackerNewsAgent()
 
-news_signals = news_agent.collect(keywords=["OpenAI"], company_name="OpenAI", company_id=company["id"])
+news_signals = news_agent.collect(keywords=["OpenAI"], company_name="OpenAI", company_id=company["id"], website="https://openai.com")
 hn_signals = hn_agent.collect(company_name="OpenAI", company_id=company["id"])
 
 raw_signals = news_signals + hn_signals

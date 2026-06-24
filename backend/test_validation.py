@@ -16,7 +16,7 @@ company_name = "OpenAI"
 company_id = "test-id"
 
 print("Collecting news...")
-news_signals = news_agent.collect(keywords=["OpenAI"], company_name=company_name, company_id=company_id)
+news_signals = news_agent.collect(keywords=["OpenAI"], company_name=company_name, company_id=company_id, website="https://openai.com")
 print("Collecting HN...")
 hn_signals = hn_agent.collect(company_name=company_name, company_id=company_id)
 

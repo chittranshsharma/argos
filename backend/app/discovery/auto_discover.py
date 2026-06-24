@@ -33,6 +33,10 @@ class AutoDiscoverer:
     "news_keywords": ["keyword1", "keyword2", "keyword3"]
 }}
 
+CRITICAL KEYWORD RULES:
+- DO NOT use generic terms (e.g. "AI", "Artificial Intelligence", "Machine Learning", "Deep Learning", "Generative AI", "LLM").
+- ONLY include highly specific branded terms (e.g. the company name itself, major product names, or founder names).
+
 Company: {company_name}{website_info}
 
 Return ONLY valid JSON, no explanation. Be accurate — only include sources you are confident exist."""
@@ -59,11 +63,26 @@ Return ONLY valid JSON, no explanation. Be accurate — only include sources you
                     if key in parsed and parsed[key] is not None:
                         result[key] = parsed[key]
 
-                # Ensure news_keywords always includes company name
-                if company_name not in (result.get("news_keywords") or []):
-                    keywords = result.get("news_keywords") or []
-                    keywords.insert(0, company_name)
-                    result["news_keywords"] = keywords
+                # Filter out generic keywords and ensure company name is present
+                keywords = result.get("news_keywords") or []
+                
+                BANNED_KEYWORDS = {
+                    "ai", "artificial intelligence", "machine learning",
+                    "deep learning", "generative ai", "llm",
+                    "large language model", "neural network"
+                }
+                
+                filtered_keywords = []
+                for k in keywords:
+                    if k.strip().lower() not in BANNED_KEYWORDS:
+                        filtered_keywords.append(k)
+                    else:
+                        logger.info(f"AutoDiscoverer: Rejected generic keyword '{k}' for {company_name}")
+                        
+                if company_name not in filtered_keywords:
+                    filtered_keywords.insert(0, company_name)
+                    
+                result["news_keywords"] = filtered_keywords
 
             logger.info(f"Discovered sources for {company_name}: {result}")
 
