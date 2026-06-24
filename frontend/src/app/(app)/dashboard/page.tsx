@@ -74,7 +74,7 @@ export default function DashboardPage() {
         setSources(sourcesData);
         setCompanies(companiesData);
       } catch (err) {
-        print("Dashboard fetch error:", err);
+        console.error("Dashboard fetch error:", err);
         setStats({
           companies_tracked: 0,
           signals_today: 0,
@@ -227,7 +227,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-3">
               {loading ? (
                 <div className="text-xs text-on-surface-variant">LOADING...</div>
-              ) : !sources || Object.keys(sources.percentages).length === 0 ? (
+              ) : !sources || !sources.percentages || Object.keys(sources.percentages).length === 0 ? (
                 <div className="text-xs text-on-surface-variant">NO SOURCE DATA DETECTED</div>
               ) : Object.entries(sources.percentages).sort((a, b) => b[1] - a[1]).map(([agent, pct]) => (
                 <div key={agent} className="flex flex-col gap-1.5 group">

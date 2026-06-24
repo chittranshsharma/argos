@@ -461,7 +461,13 @@ async def get_activity_feed(company_id: str, limit: int = 50):
         for s in signals:
             s["activity_type"] = "signal"
             s["timestamp"] = s.get("collected_at")
-            raw = s.get("raw_data", {})
+            raw = s.get("raw_data") or {}
+            if isinstance(raw, str):
+                import json
+                try: raw = json.loads(raw)
+                except: raw = {}
+            if not isinstance(raw, dict):
+                raw = {}
             for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
                 if key in raw:
                     s[key] = raw[key]
@@ -520,8 +526,20 @@ def api_approve_signal(signal_id: str):
     client = get_supabase_client()
     response = client.table("signals").select("*").eq("id", signal_id).single().execute()
     if response.data:
-        raw_data = response.data.get("raw_data", {})
-        payload = raw_data.get("payload", {})
+        raw_data = response.data.get("raw_data") or {}
+        if isinstance(raw_data, str):
+            import json
+            try: raw_data = json.loads(raw_data)
+            except: raw_data = {}
+        if not isinstance(raw_data, dict):
+            raw_data = {}
+        payload = raw_data.get("payload") or {}
+        if isinstance(payload, str):
+            import json
+            try: payload = json.loads(payload)
+            except: payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
         payload["review_status"] = "auto_approved"
         raw_data["payload"] = payload
         client.table("signals").update({"raw_data": raw_data}).eq("id", signal_id).execute()
@@ -540,7 +558,14 @@ def api_get_signal_sources():
         counts = {}
         total = len(signals)
         for s in signals:
-            agent = s.get("raw_data", {}).get("agent", "Unknown")
+            raw_data = s.get("raw_data") or {}
+            if isinstance(raw_data, str):
+                import json
+                try: raw_data = json.loads(raw_data)
+                except: raw_data = {}
+            if not isinstance(raw_data, dict):
+                raw_data = {}
+            agent = raw_data.get("agent", "Unknown")
             counts[agent] = counts.get(agent, 0) + 1
             
         percentages = {k: round((v / total) * 100, 1) for k, v in counts.items()} if total > 0 else {}
