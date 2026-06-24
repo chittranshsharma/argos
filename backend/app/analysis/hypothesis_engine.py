@@ -40,13 +40,13 @@ class HypothesisQualityValidator:
             self._llm = get_groq_llm()
         return self._llm
 
-    def run_create_deterministic_gate(self, belief: str, prediction: str, company_name: str) -> dict:
+    def run_create_deterministic_gate(self, interpretation: str, prediction: str, company_name: str) -> dict:
         # Genericity check: Replacing company name
-        generic_belief = re.sub(re.escape(company_name), "A company", belief, flags=re.IGNORECASE)
+        generic_interp = re.sub(re.escape(company_name), "A company", interpretation, flags=re.IGNORECASE)
         # If removing the company name makes it a generic startup statement without any specific nouns
         # we do a simple heuristic: if the length of words is short and no other entities are present
-        if len(generic_belief.split()) < 6:
-            return {"pass": False, "reason": "GENERICITY_FAILURE: Belief is too brief and generic."}
+        if len(generic_interp.split()) < 6:
+            return {"pass": False, "reason": "GENERICITY_FAILURE: Interpretation is too brief and generic."}
         
         # Prediction check
         pred_words = prediction.split()
@@ -87,12 +87,13 @@ class HypothesisQualityValidator:
         return {"pass": True, "reason": "Passed deterministic gates."}
 
     def validate_create_action(self, action: dict, company_name: str) -> dict:
-        belief = action.get("belief", "")
+        interpretation = action.get("interpretation") or action.get("belief", "")
         prediction = action.get("prediction", "")
         tradeoff = action.get("strategic_tradeoff", "")
+        observation = action.get("observation", "")
 
         # 1. Deterministic Checks First
-        det_res = self.run_create_deterministic_gate(belief, prediction, company_name)
+        det_res = self.run_create_deterministic_gate(interpretation, prediction, company_name)
         if not det_res["pass"]:
             return {
                 "pass": False,
@@ -107,7 +108,8 @@ class HypothesisQualityValidator:
 You are a strict strategic intelligence auditor.
 Evaluate this new strategic hypothesis for {company_name}:
 
-Belief: {belief}
+Observation: {observation}
+Interpretation: {interpretation}
 Trade-off: {tradeoff}
 Prediction: {prediction}
 
@@ -336,7 +338,10 @@ Rules:
             "dedup_rejected": 0,
             "final_created": 0,
             "final_updated": 0,
+            "proper_noun_count_avg": 0.0,
             # ── Legacy / derived ──────────────────────────────────────
+            "update_missing_hypothesis_id": 0,
+            "forced_create_conversions": 0,
             "hypotheses_created": 0,
             "hypotheses_deduplicated": 0,
             "evaluations_created": 0,
@@ -421,14 +426,50 @@ A strategic analyst has already identified the following COMPETING FORCES for {c
 EXISTING HYPOTHESES for {company_name}:
 {existing_hyps_str}
 
-For EACH tension above, determine:
-1. Does this tension map onto an EXISTING hypothesis (same strategic intent)? → output an UPDATE action.
-2. Is this tension a genuinely NEW belief not yet captured? → output a CREATE action.
+{"CRITICAL: There are NO existing hypotheses. You MUST use CREATE actions ONLY. UPDATE actions are explicitly forbidden." if not existing_hyps else "For EACH tension above, determine:\n1. Does this tension map onto an EXISTING hypothesis (same strategic intent)? → output an UPDATE action.\n2. Is this tension a genuinely NEW belief not yet captured? → output a CREATE action."}
 
-For every CREATE, the hypothesis MUST:
-- Name what management is BETTING ON (force_a prevailing)
-- Name what they are SACRIFICING to make that bet (force_b being deprioritized)
-- Predict one SPECIFIC, OBSERVABLE EVENT that would confirm the bet within 30-365 days
+═══════════════════════════════════════════════════
+CREATE SCHEMA — MANDATORY QUALITY RULES
+═══════════════════════════════════════════════════
+
+For every CREATE action you MUST produce three fields in sequence:
+
+1. OBSERVATION
+   - State only facts directly supported by the evidence above.
+   - Must reference at least 2 specific items from the evidence (names, products, events, deals).
+   - ZERO strategic language. No "suggests", "prioritizes", "bets". Only what was observed.
+   - Example: "{company_name} signed data-sharing agreements with LiveRamp and Getty Images while
+     simultaneously disclosing that Codex is causing destructive SSD write amplification on user devices."
+
+2. INTERPRETATION
+   - Explain WHY the observation matters strategically.
+   - MUST contain at least 2 proper nouns from the evidence (product names, partner names, people).
+   - MUST be impossible to apply unchanged to any other company — if you can swap {company_name}
+     for "Anthropic" and still make sense, REJECT and rewrite.
+   - Example: "{company_name}'s LiveRamp and Getty partnerships suggest it is building proprietary
+     enterprise data loops to differentiate from pure model-capability competitors like Anthropic."
+
+3. PREDICTION
+   - MUST start with "{company_name} will..."
+   - MUST describe a concrete, externally observable event an outsider could verify.
+   - MUST include a measurable timeframe (e.g., "within 90 days", "by Q1 2027").
+   - BAD: "{company_name} will continue investing in AI."
+   - GOOD: "Within 12 months {company_name} will launch an enterprise product whose primary moat
+     is customer-specific data obtained through the LiveRamp or Getty integrations."
+
+═══════════════════════════════════════════════════
+SELF-CHECK (run before returning each hypothesis)
+═══════════════════════════════════════════════════
+
+Before returning, verify:
+  A. Can I swap {company_name} with another tech company and have the interpretation still make sense?
+     If YES → rewrite until it's hyper-specific.
+  B. Does the prediction describe a specific observable event (acquire, launch, announce, sign, delay)?
+     If NO → rewrite the prediction.
+  C. Does the interpretation contain at least 2 proper nouns from the evidence?
+     If NO → rewrite the interpretation.
+
+═══════════════════════════════════════════════════
 
 Return a JSON array of actions.
 
@@ -444,11 +485,12 @@ To create a NEW hypothesis:
 {{
   "action": "CREATE",
   "type": "EXPANSION",
-  "belief": "<Declarative bet. E.g., '{company_name} is sacrificing margin to win enterprise distribution'>",
-  "supporting_signals": ["<Evidence A>", "<Evidence B>"],
-  "counter_evidence": ["<Evidence B, or None observed>"],
-  "strategic_tradeoff": "<force_a gain> at the cost of <force_b loss>",
-  "prediction": "<Specific observable event that confirms the bet>",
+  "observation": "<Factual observation referencing ≥2 evidence items by name>",
+  "interpretation": "<Strategic insight containing ≥2 proper nouns. Must be hyper-specific to {company_name}.>",
+  "supporting_signals": ["<Evidence item A>", "<Evidence item B>"],
+  "counter_evidence": ["<Counter-evidence item, or 'None observed'>"],
+  "strategic_tradeoff": "<specific force_a gain with proper nouns> at the cost of <specific force_b loss>",
+  "prediction": "<{company_name} will [specific observable action] within [timeframe].>",
   "themes": [<Themes from: {VALID_THEMES}>],
   "confidence": <float 0.40–0.70>,
   "predicted_time_horizon": "90_days"
@@ -465,11 +507,30 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
 
                 # Record candidate count + first 3 examples BEFORE any validation
                 self.metrics["candidate_actions_generated"] = len(actions_data)
+                
+                # Count average proper nouns (capitalised words, excluding sentence starts)
+                # as a proxy for specificity
+                def _count_proper_nouns(text: str) -> int:
+                    words = text.split()
+                    return sum(
+                        1 for i, w in enumerate(words)
+                        if w and w[0].isupper() and (i == 0 or not words[i-1].endswith("."))
+                        and len(w) > 1
+                    )
+                
+                create_candidates = [a for a in actions_data if a.get("action", "").upper() == "CREATE"]
+                if create_candidates:
+                    total_pn = sum(
+                        _count_proper_nouns(a.get("interpretation", a.get("belief", "")))
+                        for a in create_candidates
+                    )
+                    self.metrics["proper_noun_count_avg"] = round(total_pn / len(create_candidates), 1)
+                
                 self.metrics["candidate_examples"] = [
                     {
                         "action": a.get("action", "?"),
                         "preview": (
-                            a.get("belief", a.get("reasoning", ""))[:200]
+                            a.get("interpretation", a.get("belief", a.get("reasoning", "")))[:200]
                         )
                     }
                     for a in actions_data[:3]
@@ -489,14 +550,22 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                 for action in actions_data:
                     action_type = action.get("action", "").upper()
                     
+                    if action_type == "UPDATE" and not existing_hyps:
+                        self.metrics["forced_create_conversions"] += 1
+                        action_type = "CREATE"
+                        logger.warning(f"Forced CREATE conversion for {company_name}: LLM emitted UPDATE despite no existing hypotheses.")
+                    
                     if action_type == "UPDATE":
                         hyp_id = action.get("hypothesis_id")
                         if not hyp_id:
+                            self.metrics["update_missing_hypothesis_id"] += 1
                             continue
                         
                         # Find the existing hyp object
                         existing = next((h for h in existing_hyps if str(h.get("id")) == str(hyp_id)), None)
                         if not existing:
+                            self.metrics["update_missing_hypothesis_id"] += 1
+                            logger.warning(f"Dropped UPDATE candidate for {company_name}: Fake or missing hypothesis_id '{hyp_id}'")
                             continue
 
                         total_actions_evaluated += 1
@@ -572,8 +641,10 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         # Build formatted markdown description
                         support_list = "\n".join([f"- {s}" for s in action.get("supporting_signals", ["None"])])
                         counter_list = "\n".join([f"- {c}" for c in action.get("counter_evidence", ["None observed"])])
+                        observation_text = action.get("observation", "")
                         
-                        desc_md = f"**Strategic Trade-off**:\n{action.get('strategic_tradeoff', 'None specified')}\n\n" \
+                        desc_md = (f"**Observation**:\n{observation_text}\n\n" if observation_text else "") + \
+                                  f"**Strategic Trade-off**:\n{action.get('strategic_tradeoff', 'None specified')}\n\n" \
                                   f"**Prediction**:\n{action.get('prediction', 'None specified')}\n\n" \
                                   f"**Counter-evidence**:\n{counter_list}\n\n" \
                                   f"**Supporting Evidence**:\n{support_list}"
@@ -581,7 +652,8 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         hyp_record = {
                             "company_id": company_id,
                             "type": action.get("type", "EXPANSION"),
-                            "title": action.get("belief", "Unknown Strategic Belief"),
+                            # Use interpretation as the title; fall back to legacy belief field
+                            "title": action.get("interpretation") or action.get("belief", "Unknown Strategic Belief"),
                             "description": desc_md,
                             "themes": themes,
                             "confidence": float(action.get("confidence", 0.50)),
