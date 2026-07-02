@@ -78,17 +78,20 @@ def generate_report():
             "prediction_target": h.get("prediction_target", ""),
             "prediction_deadline_days": h.get("prediction_deadline_days", ""),
             "prediction_measurement": h.get("prediction_measurement", ""),
+            # Key quality flag: can CONFIRMED be trusted for this row?
+            "prediction_structured": bool(h.get("prediction_event", "")),
             # Tracker verdict
             "tracker_status": r["status"],
             "tracker_confidence": r.get("confidence", ""),
             "tracker_verdict": vp.get("verdict", ""),
             "tracker_reasoning": vp.get("reasoning", ""),
+            "cause_vs_outcome_check": vp.get("cause_vs_outcome_check", ""),
             "matching_signals": " | ".join(signal_titles[:5]),
             "evidence_signal_details": " | ".join(signal_details[:5]),
             "evidence_count": r.get("evidence_count", 0),
-            # For human scoring
-            "human_verdict": "",    # AGREE / DISAGREE / PARTIAL
-            "human_notes": "",
+            # For human scoring (EXPIRED rows: verdict = N/A, deterministic)
+            "human_verdict": "N/A" if r["status"] == "EXPIRED" else "",
+            "human_notes": "Deterministic deadline expiry — no LLM" if r["status"] == "EXPIRED" else "",
             # Meta
             "updated_at": r.get("updated_at", ""),
         })
@@ -138,32 +141,69 @@ def score_report(csv_file):
     scored = [r for r in rows if r.get("human_verdict", "").strip().upper() in ("AGREE", "DISAGREE", "PARTIAL")]
     if not scored:
         print("No human verdicts found. Fill in the 'human_verdict' column first.")
+        print("Note: EXPIRED rows are pre-filled as N/A and excluded from scoring.")
         return
 
-    total = len(scored)
-    agree = sum(1 for r in scored if r["human_verdict"].strip().upper() == "AGREE")
-    partial = sum(1 for r in scored if r["human_verdict"].strip().upper() == "PARTIAL")
-    disagree = sum(1 for r in scored if r["human_verdict"].strip().upper() == "DISAGREE")
+    # Exclude EXPIRED — deterministic, no classifier involved
+    llm_scored = [r for r in scored if r.get("tracker_status", "") != "EXPIRED"]
+    expired_count = sum(1 for r in rows if r.get("tracker_status", "") == "EXPIRED")
 
-    # Resolution accuracy: AGREE = full credit, PARTIAL = 0.5 credit, DISAGREE = 0
+    if not llm_scored:
+        print(f"All scored rows are EXPIRED (deterministic). Nothing to measure for LLM accuracy.")
+        print(f"Generate more hypotheses and run the tracker to accumulate LLM classifications.")
+        return
+
+    total = len(llm_scored)
+    agree = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "AGREE")
+    partial = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "PARTIAL")
+    disagree = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "DISAGREE")
+
+    # Resolution accuracy: AGREE=1, PARTIAL=0.5, DISAGREE=0 — excludes EXPIRED
     accuracy = (agree + 0.5 * partial) / total if total > 0 else 0
 
+    # CONFIRMED precision (the critical metric)
+    confirmed_rows = [r for r in llm_scored if r.get("tracker_status") == "CONFIRMED"]
+    confirmed_agree = sum(1 for r in confirmed_rows if r["human_verdict"].strip().upper() == "AGREE")
+    confirmed_precision = confirmed_agree / len(confirmed_rows) if confirmed_rows else None
+
+    # CONTRADICTED precision
+    contradicted_rows = [r for r in llm_scored if r.get("tracker_status") == "CONTRADICTED"]
+    contradicted_agree = sum(1 for r in contradicted_rows if r["human_verdict"].strip().upper() == "AGREE")
+    contradicted_precision = contradicted_agree / len(contradicted_rows) if contradicted_rows else None
+
     print("\n" + "=" * 60)
-    print("RESOLUTION ACCURACY REPORT")
+    print("RESOLUTION PRECISION REPORT")
     print("=" * 60)
-    print(f"Outcomes reviewed : {total}")
+    print(f"LLM-classified outcomes reviewed : {total}  (EXPIRED excluded: {expired_count})")
     print(f"  AGREE           : {agree}  ({agree/total*100:.0f}%)")
     print(f"  PARTIAL         : {partial}  ({partial/total*100:.0f}%)")
     print(f"  DISAGREE        : {disagree}  ({disagree/total*100:.0f}%)")
     print()
-    print(f"Resolution Accuracy: {accuracy*100:.1f}%")
-
-    if accuracy >= 0.85:
-        print("\n✅ ABOVE THRESHOLD (85%) — Calibration is safe to build.")
-    elif accuracy >= 0.70:
-        print("\n⚠️  BELOW THRESHOLD — Review disagreements before building calibration.")
+    print("── PRIMARY METRICS (gate for calibration) ──")
+    if confirmed_precision is not None:
+        gate_ok = confirmed_precision >= 0.85
+        symbol = "✅" if gate_ok else "🚨"
+        print(f"{symbol} CONFIRMED Precision : {confirmed_precision*100:.1f}%  ({confirmed_agree}/{len(confirmed_rows)}) ← must be >85% before calibration")
     else:
-        print("\n🚨 CRITICALLY LOW — Tracker prompt needs significant revision.")
+        print("   CONFIRMED Precision : No CONFIRMED outcomes scored yet")
+    if contradicted_precision is not None:
+        gate_ok = contradicted_precision >= 0.85
+        symbol = "✅" if gate_ok else "🚨"
+        print(f"{symbol} CONTRADICTED Precision: {contradicted_precision*100:.1f}%  ({contradicted_agree}/{len(contradicted_rows)})")
+    else:
+        print("   CONTRADICTED Precision: No CONTRADICTED outcomes scored yet")
+    print()
+    print("── SECONDARY METRIC ──")
+    print(f"   Overall Resolution Accuracy: {accuracy*100:.1f}%  (AGREE+0.5×PARTIAL / total LLM rows)")
+    print()
+
+    # Calibration gate
+    if confirmed_precision is not None and confirmed_precision >= 0.85:
+        print("✅ CONFIRMED Precision gate passed — calibration is safe to build.")
+    elif confirmed_precision is not None:
+        print("🚨 CONFIRMED Precision below 85% — review tracker prompt before building calibration.")
+    else:
+        print("⏳ Not enough CONFIRMED outcomes yet. Generate more hypotheses and run tracker.")
 
     print()
 

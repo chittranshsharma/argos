@@ -214,43 +214,87 @@ class PredictionTracker:
 
     def _classify_evidence(self, hyp: dict, signals: list[dict]) -> dict:
         """
-        Ask Llama-3-70b whether recent signals SUPPORT, CONTRADICT, CONFIRM, or are UNCHANGED
-        relative to this hypothesis' structured prediction.
+        Ask Llama-3-70b whether recent signals SUPPORT, CONTRADICT, CONFIRM, or are UNCHANGED.
+
+        Precision rules (as of Sprint 5A v2):
+        - CONFIRMED requires: the specific prediction_event has verifiably occurred AND
+          the prediction_measurement condition is met. Context/cause signals alone are NOT enough.
+        - If prediction_event is empty/null, CONFIRMED is BLOCKED — downgrade to SUPPORTED at best.
+        - SUPPORTED requires directional alignment with the predicted OUTCOME (not just the cause).
+        - Evidence about why a thing might happen ≠ Evidence that the thing happened.
         """
-        pred_event   = hyp.get("prediction_event", "")
-        pred_target  = hyp.get("prediction_target", "")
-        pred_measure = hyp.get("prediction_measurement", "")
+        pred_event   = hyp.get("prediction_event") or ""
+        pred_target  = hyp.get("prediction_target") or ""
+        pred_measure = hyp.get("prediction_measurement") or ""
         pred_days    = hyp.get("prediction_deadline_days", "N/A")
+        is_structured = bool(pred_event.strip())
+
+        # Hard block: unstructured hypotheses (pre-schema) cannot be CONFIRMED
+        # They can only reach SUPPORTED, because there's no specific event to confirm.
+        confirmed_blocked = not is_structured
 
         # Compact signal context — most recent 20, title + summary only
         signal_lines = "\n".join([
-            f"- [{s.get('signal_type', '?')}] {s.get('title', '')}: {str(s.get('summary', s.get('content', '')))[:120]}"
+            f"- [{s.get('signal_type', '?')}] {s.get('title', '')}: "
+            f"{str(s.get('summary', s.get('content', '')))[:120]}"
             for s in signals[:20]
         ])
 
-        prompt = f"""You are Argos Prediction Auditor. Your job is to review recent signals and evaluate whether they support, contradict, confirm, or have no bearing on a specific strategic prediction.
+        # Build the prediction block — use title-based fallback if unstructured
+        if is_structured:
+            prediction_block = f"""- Specific Event:   {pred_event}
+- Target Entity:    {pred_target}
+- Deadline:         {pred_days} days from hypothesis creation
+- Measurement:      {pred_measure}"""
+            confirmed_criteria = (
+                "CONFIRMED: The SPECIFIC EVENT listed above has verifiably occurred "
+                "AND the measurement condition is demonstrably met by at least one signal. "
+                "Evidence that the prediction is likely or moving in that direction is NOT enough. "
+                "Evidence about WHY the event might happen (causes, context, related news) is NOT enough."
+            )
+        else:
+            prediction_block = f"""- Hypothesis Title: {hyp.get('title', '')}
+- NOTE: This hypothesis has no structured prediction fields. 
+  CONFIRMED is therefore BLOCKED for this hypothesis."""
+            confirmed_criteria = (
+                "CONFIRMED: BLOCKED — this hypothesis lacks structured prediction fields "
+                "(prediction_event is null). Use SUPPORTED at most."
+            )
+
+        prompt = f"""You are Argos Prediction Auditor. You evaluate whether recent signals confirm, support, contradict, or are irrelevant to a specific strategic prediction.
 
 PREDICTION:
-- Event:       {pred_event}
-- Target:      {pred_target}
-- Deadline:    {pred_days} days from hypothesis creation
-- Measurement: {pred_measure}
+{prediction_block}
+
+CRITICAL RULES:
+1. Distinguish CAUSE from OUTCOME.
+   - Evidence that the underlying CONDITIONS exist (regulatory pressure, market forces) = cause.
+   - Evidence that the SPECIFIC PREDICTED EVENT occurred = outcome.
+   - Cause evidence alone → SUPPORTED at best. Never CONFIRMED.
+
+2. CONFIRMED requires ALL three of the following to be true:
+   a) A signal explicitly states the predicted event happened or is happening now.
+   b) The signal is about the predicted target entity/product/action (not a related but different one).
+   c) The measurement condition is plausibly satisfied by the evidence.
+
+3. SUPPORTED means: signals are directionally aligned with the prediction outcome (not just causes),
+   but the specific event has NOT been explicitly confirmed.
+
+4. CONTRADICTED means: signals indicate the predicted event will NOT happen or the opposite occurred.
+   A delay or slower progress is NOT contradiction unless it explicitly negates the prediction.
+
+5. UNCHANGED means: signals are about unrelated topics, or are purely contextual/background.
 
 RECENT SIGNALS (most recent first):
 {signal_lines}
 
-Classify the weight of evidence using EXACTLY one of:
-- CONFIRMED: A specific signal clearly proves the prediction event occurred and the measurement is met.
-- SUPPORTED: Signals partially align with the prediction (directionally correct but not definitively confirmed).
-- CONTRADICTED: Signals actively indicate the prediction will not happen or the opposite occurred.
-- UNCHANGED: No signal is meaningfully relevant to this prediction.
-
 Return ONLY valid JSON:
 {{
   "verdict": "CONFIRMED|SUPPORTED|CONTRADICTED|UNCHANGED",
-  "matching_signals": ["<Exact signal title 1>", "<Exact signal title 2>"],
-  "reasoning": "<One sentence explaining the verdict based only on the signals above.>",
-  "confidence": <float 0.0–1.0 representing how confident you are in this verdict>
+  "matching_signals": ["<Exact signal title>"],
+  "reasoning": "<One sentence explaining specifically WHY this verdict, referencing the prediction event and which signals prove/support/contradict it.>",
+  "confidence": <float 0.0-1.0>,
+  "cause_vs_outcome_check": "<One sentence: Are the matching signals about the CAUSE/CONTEXT or the actual OUTCOME? This determines if CONFIRMED is appropriate.>"
 }}"""
 
         try:
@@ -258,9 +302,21 @@ Return ONLY valid JSON:
             match = re.search(r"\{.*\}", response, re.DOTALL)
             if match:
                 result = json.loads(match.group())
-                # Validate verdict field
+                verdict = result.get("verdict", "UNCHANGED")
+
+                # Enforce hard block on CONFIRMED for unstructured hypotheses
+                if confirmed_blocked and verdict == "CONFIRMED":
+                    result["verdict"] = "SUPPORTED"
+                    result["reasoning"] = (
+                        "[Auto-downgraded from CONFIRMED: prediction_event is unstructured] "
+                        + result.get("reasoning", "")
+                    )
+
                 if result.get("verdict") not in ("CONFIRMED", "SUPPORTED", "CONTRADICTED", "UNCHANGED"):
                     result["verdict"] = "UNCHANGED"
+
+                # Tag whether this hypothesis has structured prediction fields
+                result["prediction_structured"] = is_structured
                 return result
         except Exception as e:
             logger.error(f"[PredictionTracker] LLM classification failed: {e}")
@@ -270,6 +326,8 @@ Return ONLY valid JSON:
             "matching_signals": [],
             "reasoning": "Failed to parse LLM response.",
             "confidence": 0.0,
+            "prediction_structured": is_structured,
+            "cause_vs_outcome_check": "N/A",
         }
 
 
@@ -277,3 +335,4 @@ def run_prediction_tracking():
     """Entrypoint for the APScheduler job."""
     tracker = PredictionTracker()
     return tracker.run()
+
