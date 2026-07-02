@@ -646,3 +646,100 @@ def get_latest_analytics_snapshot(metric_type: str) -> dict:
         logger.error(f"Error getting analytics snapshot {metric_type}: {e}")
         return {}
 # Sprint D.7B finalized: product-ready hypothesis engine.
+
+# ── Prediction Outcomes (Forecast Registry) ─────────────────────
+
+PREDICTION_TERMINAL_STATES = {"CONFIRMED", "INCORRECT", "EXPIRED"}
+
+def create_prediction_outcome(hypothesis_id: str) -> dict:
+    """Insert a new UNRESOLVED prediction outcome row for a fresh hypothesis."""
+    try:
+        client = get_supabase_client()
+        response = client.table("prediction_outcomes").insert({
+            "hypothesis_id": hypothesis_id,
+            "status": "UNRESOLVED",
+            "evidence_signal_ids": [],
+            "evidence_count": 0,
+        }).execute()
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error creating prediction outcome for {hypothesis_id}: {e}")
+        return {}
+
+
+def get_pending_prediction_outcomes() -> list:
+    """Return all non-terminal prediction_outcomes rows for tracking."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table("prediction_outcomes")
+            .select("*, hypotheses(*)")
+            .not_.in_("status", list(PREDICTION_TERMINAL_STATES))
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error fetching pending prediction outcomes: {e}")
+        return []
+
+
+def update_prediction_outcome(outcome_id: str, status: str, reason: str,
+                              evidence_signal_ids: list, evidence_count: int,
+                              verdict_payload: dict, confidence: float) -> dict:
+    """Transition a prediction_outcome to a new state with full audit payload."""
+    try:
+        client = get_supabase_client()
+        updates = {
+            "status": status,
+            "resolution_reason": reason,
+            "evidence_signal_ids": evidence_signal_ids,
+            "evidence_count": evidence_count,
+            "verdict_payload": verdict_payload,
+            "confidence": confidence,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if status in PREDICTION_TERMINAL_STATES:
+            updates["resolved_at"] = datetime.now(timezone.utc).isoformat()
+
+        response = client.table("prediction_outcomes").update(updates).eq("id", outcome_id).execute()
+        return response.data[0] if response.data else {}
+    except Exception as e:
+        logger.error(f"Error updating prediction outcome {outcome_id}: {e}")
+        return {}
+
+
+def get_prediction_outcomes_scorecard() -> dict:
+    """Return aggregate counts across all prediction_outcomes for the scorecard API."""
+    try:
+        client = get_supabase_client()
+        res = client.table("prediction_outcomes").select("status").execute()
+        rows = res.data or []
+
+        counts = {
+            "UNRESOLVED": 0, "SUPPORTED": 0, "CONTRADICTED": 0,
+            "CONFIRMED": 0, "INCORRECT": 0, "EXPIRED": 0,
+        }
+        for r in rows:
+            s = r.get("status", "UNRESOLVED")
+            counts[s] = counts.get(s, 0) + 1
+
+        confirmed = counts["CONFIRMED"]
+        incorrect = counts["INCORRECT"]
+        decisive = confirmed + incorrect
+        hit_rate = round(confirmed / decisive, 3) if decisive >= 5 else None
+
+        return {
+            "predictions_tracked": len(rows),
+            "predictions_unresolved": counts["UNRESOLVED"],
+            "predictions_supported": counts["SUPPORTED"],
+            "predictions_contradicted": counts["CONTRADICTED"],
+            "predictions_confirmed": counts["CONFIRMED"],
+            "predictions_incorrect": counts["INCORRECT"],
+            "predictions_expired": counts["EXPIRED"],
+            "hit_rate": hit_rate,
+            "hit_rate_note": None if decisive >= 5 else "Insufficient data (need 5+ decisive outcomes)",
+        }
+    except Exception as e:
+        logger.error(f"Error fetching prediction outcomes scorecard: {e}")
+        return {}
+

@@ -190,8 +190,18 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    # Job 5: Prediction Outcome Tracking every 6 hours
+    from app.analysis.prediction_tracker import run_prediction_tracking
+    scheduler.add_job(
+        run_prediction_tracking,
+        trigger=IntervalTrigger(hours=6),
+        id="prediction_tracking",
+        name="Prediction Outcome Tracking",
+        replace_existing=True,
+    )
+
     scheduler.start()
-    logger.info("APScheduler started with 4 jobs")
+    logger.info("APScheduler started with 5 jobs")
 
 
 def stop_scheduler():

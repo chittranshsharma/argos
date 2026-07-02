@@ -10,6 +10,7 @@ from app.llm import get_groq_llm, llm_invoke
 from app.analysis.signal_compressor import compress_signals
 from app.database import (
     create_hypothesis,
+    create_prediction_outcome,
     get_active_and_confirmed_hypotheses,
     update_hypothesis,
     create_hypothesis_evaluation,
@@ -40,10 +41,7 @@ class HypothesisQualityValidator:
             self._llm = get_groq_llm()
         return self._llm
 
-<<<<<<< HEAD
-    def run_create_deterministic_gate(self, interpretation: str, prediction: str, company_name: str) -> dict:
-=======
-    def run_create_deterministic_gate(self, belief: str, prediction_event: str, prediction_target: str, prediction_measurement: str, company_name: str, evidence_titles: list[str]) -> dict:
+    def run_create_deterministic_gate(self, interpretation: str, prediction_event: str, prediction_target: str, prediction_measurement: str, company_name: str, evidence_titles: list[str]) -> dict:
         # Reconstruct full prediction string for backward compatibility with existing checks
         prediction = f"{prediction_event} {prediction_target} {prediction_measurement}"
         
@@ -56,8 +54,6 @@ class HypothesisQualityValidator:
         pred_lower = prediction.lower()
         if any(fluff in pred_lower for fluff in fluff_words):
             return {"pass": False, "reason": "CONCRETENESS_FAILURE: Prediction relies on unmeasurable narrative fluff (e.g. 'major', 'accelerate') instead of concrete events."}
-            
->>>>>>> a069832 (feat(analysis): implement structured prediction schema, concreteness gate, and add comprehensive audit scripts including CEO Test V3)
         # Genericity check: Replacing company name
         generic_interp = re.sub(re.escape(company_name), "A company", interpretation, flags=re.IGNORECASE)
         # If removing the company name makes it a generic startup statement without any specific nouns
@@ -101,28 +97,18 @@ class HypothesisQualityValidator:
         
         return {"pass": True, "reason": "Passed deterministic gates."}
 
-<<<<<<< HEAD
-    def validate_create_action(self, action: dict, company_name: str) -> dict:
-        interpretation = action.get("interpretation") or action.get("belief", "")
-        prediction = action.get("prediction", "")
-        tradeoff = action.get("strategic_tradeoff", "")
-        observation = action.get("observation", "")
-
-        # 1. Deterministic Checks First
-        det_res = self.run_create_deterministic_gate(interpretation, prediction, company_name)
-=======
     def validate_create_action(self, action: dict, company_name: str, recent_signals: list[dict]) -> dict:
-        belief = action.get("belief", "")
+        interpretation = action.get("interpretation") or action.get("belief", "")
         prediction_event = action.get("prediction_event", "")
         prediction_target = action.get("prediction_target", "")
         prediction_measurement = action.get("prediction_measurement", "")
         prediction = f"{prediction_event} {prediction_target} {prediction_measurement}"
         tradeoff = action.get("strategic_tradeoff", "")
+        observation = action.get("observation", "")
         evidence_titles = [s.get("title", "") for s in recent_signals]
 
         # 1. Deterministic Checks First
-        det_res = self.run_create_deterministic_gate(belief, prediction_event, prediction_target, prediction_measurement, company_name, evidence_titles)
->>>>>>> a069832 (feat(analysis): implement structured prediction schema, concreteness gate, and add comprehensive audit scripts including CEO Test V3)
+        det_res = self.run_create_deterministic_gate(interpretation, prediction_event, prediction_target, prediction_measurement, company_name, evidence_titles)
         if not det_res["pass"]:
             res = {
                 "pass": False,
@@ -493,6 +479,11 @@ Rules:
             )
         # ─────────────────────────────────────────────────────────────────────
 
+        if not existing_hyps:
+            action_instructions = "CRITICAL: There are NO existing hypotheses. You MUST use CREATE actions ONLY. UPDATE actions are explicitly forbidden."
+        else:
+            action_instructions = "For EACH tension above, determine:\n1. Does this tension map onto an EXISTING hypothesis (same strategic intent)? → output an UPDATE action.\n2. Is this tension a genuinely NEW belief not yet captured? → output a CREATE action."
+        
         prompt = f"""
 You are the Argos Intelligence Hypothesis Engine.
 The trigger for this generation is: {trigger_reason}
@@ -503,7 +494,7 @@ A strategic analyst has already identified the following COMPETING FORCES for {c
 EXISTING HYPOTHESES for {company_name}:
 {existing_hyps_str}
 
-{"CRITICAL: There are NO existing hypotheses. You MUST use CREATE actions ONLY. UPDATE actions are explicitly forbidden." if not existing_hyps else "For EACH tension above, determine:\n1. Does this tension map onto an EXISTING hypothesis (same strategic intent)? → output an UPDATE action.\n2. Is this tension a genuinely NEW belief not yet captured? → output a CREATE action."}
+{action_instructions}
 
 ═══════════════════════════════════════════════════
 CREATE SCHEMA — MANDATORY QUALITY RULES
@@ -734,7 +725,7 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         
                         desc_md = (f"**Observation**:\n{observation_text}\n\n" if observation_text else "") + \
                                   f"**Strategic Trade-off**:\n{action.get('strategic_tradeoff', 'None specified')}\n\n" \
-                                  f"**Prediction**:\n{formatted_prediction}\n\n"
+                                  f"**Prediction**:\n{formatted_prediction}\n\n" \
                                   f"**Counter-evidence**:\n{counter_list}\n\n" \
                                   f"**Supporting Evidence**:\n{support_list}"
                         
@@ -754,6 +745,8 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                             created_or_updated.append(db_hyp)
                             self.metrics["hypotheses_created"] += 1
                             self.metrics["final_created"] += 1
+                            # Sprint 5A: register this prediction in the Forecast Registry
+                            create_prediction_outcome(db_hyp["id"])
 
                 if total_actions_evaluated > 0:
                     self.metrics["quality_rejection_rate"] = round(total_actions_rejected / total_actions_evaluated, 2)
