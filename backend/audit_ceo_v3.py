@@ -128,6 +128,15 @@ def run_ceo_test():
             
         yield_rate = round(company_ceo_worthy / stored * 100) if stored > 0 else 0
         print(f"  CEO Insight Yield for {target}: {yield_rate}% ({company_ceo_worthy}/{stored})")
+        
+        if captured_rejections:
+            print("\nREJECTED HYPOTHESES:")
+            for rej in captured_rejections:
+                action = rej.get("action", {})
+                scores = rej.get("scores", {})
+                print(f"- TITLE: {action.get('belief') or action.get('interpretation')}")
+                print(f"  Reason: {scores.get('reason')}")
+                print(f"  Scores: Genericity={scores.get('genericity_score')}, Opposite={scores.get('opposite_score')}, CEO={scores.get('ceo_score')}, Falsifiability={scores.get('falsifiability_score')}")
         print("="*60)
 
     print("\n\n=== FINAL RESULTS ===")

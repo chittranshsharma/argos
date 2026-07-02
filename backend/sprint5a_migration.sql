@@ -41,3 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_prediction_outcomes_hypothesis
 
 CREATE INDEX IF NOT EXISTS idx_prediction_outcomes_status
     ON public.prediction_outcomes(status);
+
+-- resolution_strength: continuous signal weight for future calibration
+ALTER TABLE public.prediction_outcomes
+ADD COLUMN IF NOT EXISTS resolution_strength FLOAT;
