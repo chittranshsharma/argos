@@ -40,7 +40,24 @@ class HypothesisQualityValidator:
             self._llm = get_groq_llm()
         return self._llm
 
+<<<<<<< HEAD
     def run_create_deterministic_gate(self, interpretation: str, prediction: str, company_name: str) -> dict:
+=======
+    def run_create_deterministic_gate(self, belief: str, prediction_event: str, prediction_target: str, prediction_measurement: str, company_name: str, evidence_titles: list[str]) -> dict:
+        # Reconstruct full prediction string for backward compatibility with existing checks
+        prediction = f"{prediction_event} {prediction_target} {prediction_measurement}"
+        
+        # Concreteness Gate: reject fluffy narrative words
+        fluff_words = [
+            "major", "significant", "accelerate", "improve", "enhance", 
+            "strengthen", "grow adoption", "increase adoption", 
+            "expand presence", "drive growth", "support growth"
+        ]
+        pred_lower = prediction.lower()
+        if any(fluff in pred_lower for fluff in fluff_words):
+            return {"pass": False, "reason": "CONCRETENESS_FAILURE: Prediction relies on unmeasurable narrative fluff (e.g. 'major', 'accelerate') instead of concrete events."}
+            
+>>>>>>> a069832 (feat(analysis): implement structured prediction schema, concreteness gate, and add comprehensive audit scripts including CEO Test V3)
         # Genericity check: Replacing company name
         generic_interp = re.sub(re.escape(company_name), "A company", interpretation, flags=re.IGNORECASE)
         # If removing the company name makes it a generic startup statement without any specific nouns
@@ -49,43 +66,42 @@ class HypothesisQualityValidator:
             return {"pass": False, "reason": "GENERICITY_FAILURE: Interpretation is too brief and generic."}
         
         # Prediction check
-        pred_words = prediction.split()
-        if len(pred_words) < 5:
-            return {"pass": False, "reason": "QUANTIFICATION_FAILURE: Statement is too vague."}
-            
-        def contains_future_claim(pred: str) -> bool:
-            pred_lower = pred.lower()
-            future_markers = ["will", "plans to", "expected to", "set to", "scheduled to", "going to", "soon"]
-            if not any(marker in pred_lower for marker in future_markers):
-                return False
-                
-            # Weak phrases that are NOT observable events
-            weak_phrases = [
-                "will grow", "continue growing", "will improve", "plans to improve", 
-                "will expand capabilities", "will become", "will get better", 
-                "competition will increase", "models will get better",
-                "more partnerships soon", "more lawsuits will happen"
-            ]
-            if any(weak in pred_lower for weak in weak_phrases):
-                return False
-                
-            # Must contain an observable action/event
-            observable_actions = [
-                "acquire", "launch", "introduce", "restrict", "announce", "spin off",
-                "release", "sign", "delay", "open", "hire", "sunset", "implement", 
-                "refuse", "drop", "open-source", "boast", "increase", "raise", "price"
-            ]
-            if not any(action in pred_lower for action in observable_actions):
-                # If no specific observable action verb is found, fail it
-                return False
-                
-            return True
+        if len(prediction_measurement.split()) < 4:
+            return {"pass": False, "reason": "QUANTIFICATION_FAILURE: Prediction measurement is too vague."}
 
-        if not contains_future_claim(prediction):
-            return {"pass": False, "reason": "TIME_HORIZON_FAILURE: No verifiable future claim or externally observable event."}
-
+        # Freshness Gate: check if the prediction event has already occurred
+        VERB_FAMILIES = {
+            "announce": ["announce", "announced", "unveil", "unveiled"],
+            "launch": ["launch", "launched", "release", "released"],
+            "acquire": ["acquire", "acquired", "buy", "bought"],
+            "partner": ["partner", "partnered", "alliance", "agreement"],
+            "fund": ["fund", "funding", "raise", "raised"],
+        }
+        
+        NOUN_FAMILIES = {
+            "AI_CHIP": ["custom ai chip", "ai inference chip", "custom inference chip", "chip", "hardware"],
+            "ENTERPRISE_DATA": ["enterprise data platform", "data loops", "proprietary data", "enterprise product"],
+            "MODEL_RELEASE": ["model", "release", "api", "claude tag", "mythos", "fable"],
+            "PARTNERSHIP": ["partnership", "agreement", "alliance", "deal"],
+            "FUNDING": ["funding", "raise", "investment", "capital"]
+        }
+        
+        pred_lower = prediction.lower()
+        for v_family_name, v_synonyms in VERB_FAMILIES.items():
+            if any(verb in pred_lower for verb in v_synonyms):
+                # We found a verb. Now look for a noun family.
+                for n_family_name, n_synonyms in NOUN_FAMILIES.items():
+                    if any(noun in pred_lower for noun in n_synonyms):
+                        # The prediction contains both a verb and a noun family.
+                        # Now check if ANY evidence title contains BOTH.
+                        for title in evidence_titles:
+                            title_lower = title.lower()
+                            if any(v in title_lower for v in v_synonyms) and any(n in title_lower for n in n_synonyms):
+                                return {"pass": False, "reason": "FRESHNESS_FAILURE: Prediction already occurred in evidence.", "failed_gate": "freshness"}
+        
         return {"pass": True, "reason": "Passed deterministic gates."}
 
+<<<<<<< HEAD
     def validate_create_action(self, action: dict, company_name: str) -> dict:
         interpretation = action.get("interpretation") or action.get("belief", "")
         prediction = action.get("prediction", "")
@@ -94,14 +110,30 @@ class HypothesisQualityValidator:
 
         # 1. Deterministic Checks First
         det_res = self.run_create_deterministic_gate(interpretation, prediction, company_name)
+=======
+    def validate_create_action(self, action: dict, company_name: str, recent_signals: list[dict]) -> dict:
+        belief = action.get("belief", "")
+        prediction_event = action.get("prediction_event", "")
+        prediction_target = action.get("prediction_target", "")
+        prediction_measurement = action.get("prediction_measurement", "")
+        prediction = f"{prediction_event} {prediction_target} {prediction_measurement}"
+        tradeoff = action.get("strategic_tradeoff", "")
+        evidence_titles = [s.get("title", "") for s in recent_signals]
+
+        # 1. Deterministic Checks First
+        det_res = self.run_create_deterministic_gate(belief, prediction_event, prediction_target, prediction_measurement, company_name, evidence_titles)
+>>>>>>> a069832 (feat(analysis): implement structured prediction schema, concreteness gate, and add comprehensive audit scripts including CEO Test V3)
         if not det_res["pass"]:
-            return {
+            res = {
                 "pass": False,
                 "genericity_score": 1,
                 "ceo_score": 1,
                 "falsifiability_score": 1,
                 "reason": det_res["reason"]
             }
+            if det_res.get("failed_gate") == "freshness":
+                res["failed_gate"] = "freshness"
+            return res
 
         # 2. LLM Quality Gate
         prompt = f"""
@@ -207,6 +239,8 @@ class HypothesisEngine:
             "signals_seen": 0,                 # raw signals passed in
             "signals_after_compression": 0,    # after compress_signals
             "tensions_extracted": 0,            # competing forces found (step 1)
+            "tensions_overlap_checked": 0,      # how many valid pairs were overlap-checked
+            "tensions_discarded_low_overlap": 0, # discarded due to no substantive shared concept
             "tensions_discarded_no_evidence": 0, # tensions dropped: < 2 signals per side
             "tension_examples": [],             # first 2 tension previews
             "candidate_actions_generated": 0,  # actions LLM proposed (pre-validation)
@@ -223,6 +257,8 @@ class HypothesisEngine:
             "genericity_failures": 0,
             "ceo_test_failures": 0,
             "falsifiability_failures": 0,
+            "freshness_checked": 0,
+            "freshness_rejected": 0,
             "update_regression_failures": 0,
             "quality_rejection_rate": 0.0,
             "average_quality_score": 0.0
@@ -296,23 +332,60 @@ Rules:
 
         # Evidence gatekeeping: discard tensions with < 2 signals per side.
         # No LLM, no validator — pure Python filter.
-        valid, discarded = [], 0
+        valid, discarded_evidence, discarded_overlap = [], 0, 0
+        overlap_checked = 0
+        
         for t in raw_tensions:
             ev_a = [s for s in t.get("evidence_a", []) if s.strip()]
             ev_b = [s for s in t.get("evidence_b", []) if s.strip()]
             if len(ev_a) >= 2 and len(ev_b) >= 2:
-                valid.append(t)
+                overlap_checked += 1
+                
+                # LOW OVERLAP FILTER
+                def get_clean_tokens(texts):
+                    content = " ".join(texts).lower()
+                    # Replace punctuation with space
+                    content = re.sub(r'[^a-z0-9\s]', ' ', content)
+                    tokens = set(content.split())
+                    stop_words = {
+                        "a", "an", "the", "and", "or", "but", "to", "for", "with", "on", "in", "of", 
+                        "is", "are", "its", "it", "at", "by", "from", "as", "be", "this", "that", 
+                        "which", "has", "have", "had", "will", "would", "could", "should", "s"
+                    }
+                    company_variations = {company_name.lower()}
+                    return tokens - stop_words - company_variations
+                
+                meaningful_a = get_clean_tokens(ev_a)
+                meaningful_b = get_clean_tokens(ev_b)
+                
+                shared = meaningful_a.intersection(meaningful_b)
+                
+                logger.debug(
+                    f"[{company_name}] Overlap check:\n"
+                    f"Force A: {t.get('force_a')}\n"
+                    f"Force B: {t.get('force_b')}\n"
+                    f"Overlap terms: {list(shared)}\n"
+                    f"Decision: {'KEEP' if shared else 'DISCARD'}"
+                )
+                
+                if not shared:
+                    discarded_overlap += 1
+                else:
+                    valid.append(t)
             else:
-                discarded += 1
+                discarded_evidence += 1
                 logger.debug(
                     f"[{company_name}] Discarded tension (insufficient evidence): "
                     f"A={t.get('force_a', '')[:60]} | ev_a={len(ev_a)} ev_b={len(ev_b)}"
                 )
 
-        self.metrics["tensions_discarded_no_evidence"] = discarded
+        self.metrics["tensions_discarded_no_evidence"] = discarded_evidence
+        self.metrics["tensions_overlap_checked"] = overlap_checked
+        self.metrics["tensions_discarded_low_overlap"] = discarded_overlap
+        
         logger.info(
             f"[{company_name}] Tension extraction: {len(raw_tensions)} raw, "
-            f"{discarded} discarded (no evidence), {len(valid)} valid."
+            f"{discarded_evidence} discarded (no evidence), {discarded_overlap} discarded (low overlap), {len(valid)} valid."
         )
         return valid
 
@@ -330,6 +403,8 @@ Rules:
             "signals_seen": 0,
             "signals_after_compression": 0,
             "tensions_extracted": 0,
+            "tensions_overlap_checked": 0,
+            "tensions_discarded_low_overlap": 0,
             "tensions_discarded_no_evidence": 0,
             "tension_examples": [],
             "candidate_actions_generated": 0,
@@ -349,6 +424,8 @@ Rules:
             "genericity_failures": 0,
             "ceo_test_failures": 0,
             "falsifiability_failures": 0,
+            "freshness_checked": 0,
+            "freshness_rejected": 0,
             "update_regression_failures": 0,
             "quality_rejection_rate": 0.0,
             "average_quality_score": 0.0
@@ -432,7 +509,7 @@ EXISTING HYPOTHESES for {company_name}:
 CREATE SCHEMA — MANDATORY QUALITY RULES
 ═══════════════════════════════════════════════════
 
-For every CREATE action you MUST produce three fields in sequence:
+For every CREATE action you MUST produce the following fields in sequence:
 
 1. OBSERVATION
    - State only facts directly supported by the evidence above.
@@ -441,21 +518,23 @@ For every CREATE action you MUST produce three fields in sequence:
    - Example: "{company_name} signed data-sharing agreements with LiveRamp and Getty Images while
      simultaneously disclosing that Codex is causing destructive SSD write amplification on user devices."
 
-2. INTERPRETATION
-   - Explain WHY the observation matters strategically.
+2. INTERPRETATION / STRATEGIC BET
+   - Explain WHY the observation matters strategically. What is management BETTING ON (force_a prevailing) and SACRIFICING (force_b deprioritized).
    - MUST contain at least 2 proper nouns from the evidence (product names, partner names, people).
    - MUST be impossible to apply unchanged to any other company — if you can swap {company_name}
      for "Anthropic" and still make sense, REJECT and rewrite.
    - Example: "{company_name}'s LiveRamp and Getty partnerships suggest it is building proprietary
      enterprise data loops to differentiate from pure model-capability competitors like Anthropic."
 
-3. PREDICTION
-   - MUST start with "{company_name} will..."
-   - MUST describe a concrete, externally observable event an outsider could verify.
-   - MUST include a measurable timeframe (e.g., "within 90 days", "by Q1 2027").
-   - BAD: "{company_name} will continue investing in AI."
-   - GOOD: "Within 12 months {company_name} will launch an enterprise product whose primary moat
-     is customer-specific data obtained through the LiveRamp or Getty integrations."
+3. STRUCTURED PREDICTION
+   - You MUST structure the prediction into event, target, deadline (days), and measurement.
+   - Predict one SPECIFIC, OBSERVABLE EVENT that would confirm the bet within 30-365 days.
+   - Do NOT use fluffy words like "major", "accelerate", or "improve".
+   - Structured fields:
+     * prediction_event: specific action (e.g. launch, delay, acquire, sign, open-source)
+     * prediction_target: the specific product, entity, or metric (e.g. 'Claude Tag')
+     * prediction_deadline_days: an integer number of days (e.g. 90 or 180)
+     * prediction_measurement: highly specific observable condition that proves the bet.
 
 ═══════════════════════════════════════════════════
 SELF-CHECK (run before returning each hypothesis)
@@ -464,12 +543,10 @@ SELF-CHECK (run before returning each hypothesis)
 Before returning, verify:
   A. Can I swap {company_name} with another tech company and have the interpretation still make sense?
      If YES → rewrite until it's hyper-specific.
-  B. Does the prediction describe a specific observable event (acquire, launch, announce, sign, delay)?
-     If NO → rewrite the prediction.
+  B. Does the prediction describe a specific observable event (acquire, launch, announce, sign, delay) and measurement?
+     If NO → rewrite the prediction fields.
   C. Does the interpretation contain at least 2 proper nouns from the evidence?
      If NO → rewrite the interpretation.
-
-═══════════════════════════════════════════════════
 
 Return a JSON array of actions.
 
@@ -487,10 +564,13 @@ To create a NEW hypothesis:
   "type": "EXPANSION",
   "observation": "<Factual observation referencing ≥2 evidence items by name>",
   "interpretation": "<Strategic insight containing ≥2 proper nouns. Must be hyper-specific to {company_name}.>",
-  "supporting_signals": ["<Evidence item A>", "<Evidence item B>"],
-  "counter_evidence": ["<Counter-evidence item, or 'None observed'>"],
-  "strategic_tradeoff": "<specific force_a gain with proper nouns> at the cost of <specific force_b loss>",
-  "prediction": "<{company_name} will [specific observable action] within [timeframe].>",
+  "supporting_signals": ["<Evidence A>", "<Evidence B>"],
+  "counter_evidence": ["<Evidence B, or None observed>"],
+  "strategic_tradeoff": "<force_a gain with proper nouns> at the cost of <force_b loss>",
+  "prediction_event": "<e.g., launch, delay, acquire, sign, open-source>",
+  "prediction_target": "<The specific product, entity, or metric, e.g. 'Claude Tag'>",
+  "prediction_deadline_days": <int, e.g. 90 or 180>,
+  "prediction_measurement": "<Highly specific, observable condition that proves the bet, e.g. 'deployment postponed beyond announced roadmap'>",
   "themes": [<Themes from: {VALID_THEMES}>],
   "confidence": <float 0.40–0.70>,
   "predicted_time_horizon": "90_days"
@@ -612,7 +692,8 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         
                     elif action_type == "CREATE":
                         total_actions_evaluated += 1
-                        val_res = self.validator.validate_create_action(action, company_name)
+                        self.metrics["freshness_checked"] += 1
+                        val_res = self.validator.validate_create_action(action, company_name, recent_signals)
                         
                         # Tally scores
                         g_score = val_res.get("genericity_score", 0)
@@ -627,6 +708,8 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                             if g_score < 3: self.metrics["genericity_failures"] += 1
                             if c_score < 3: self.metrics["ceo_test_failures"] += 1
                             if f_score < 3: self.metrics["falsifiability_failures"] += 1
+                            if val_res.get("failed_gate") == "freshness":
+                                self.metrics["freshness_rejected"] += 1
                             
                             save_analytics_snapshot("rejected_hypothesis_create", {
                                 "action": action,
@@ -643,9 +726,15 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                         counter_list = "\n".join([f"- {c}" for c in action.get("counter_evidence", ["None observed"])])
                         observation_text = action.get("observation", "")
                         
+                        pred_event = action.get("prediction_event", "")
+                        pred_target = action.get("prediction_target", "")
+                        pred_days = action.get("prediction_deadline_days", "N/A")
+                        pred_measure = action.get("prediction_measurement", "")
+                        formatted_prediction = f"Event: {pred_event}\nTarget: {pred_target}\nDeadline: {pred_days} days\nMeasurement: {pred_measure}"
+                        
                         desc_md = (f"**Observation**:\n{observation_text}\n\n" if observation_text else "") + \
                                   f"**Strategic Trade-off**:\n{action.get('strategic_tradeoff', 'None specified')}\n\n" \
-                                  f"**Prediction**:\n{action.get('prediction', 'None specified')}\n\n" \
+                                  f"**Prediction**:\n{formatted_prediction}\n\n"
                                   f"**Counter-evidence**:\n{counter_list}\n\n" \
                                   f"**Supporting Evidence**:\n{support_list}"
                         
