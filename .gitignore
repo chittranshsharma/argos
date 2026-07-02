@@ -53,6 +53,8 @@ argos_design_specification_v1.0.md
 argos_v1.0_engineering_data_state_specification.md
 argos_v1.0_engineering_handoff_package.md
 claude_handoff.md
+complete_commits.py
+
 
 # Audit, log, and report files
 *audit*
