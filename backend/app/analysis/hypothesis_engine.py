@@ -680,6 +680,17 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                             self.metrics["final_updated"] += 1
                         
                         created_or_updated.append(existing)
+                        # Sprint 5A: ensure registry row exists for updated hypothesis
+                        # (covers pre-migration hypotheses that lack a registry entry)
+                        try:
+                            from app.database import get_supabase_client as _get_client
+                            _c = _get_client()
+                            _chk = _c.table("prediction_outcomes").select("id").eq("hypothesis_id", hyp_id).limit(1).execute()
+                            if not _chk.data:
+                                create_prediction_outcome(hyp_id)
+                        except Exception:
+                            pass  # non-fatal: backfill script covers this
+
                         
                     elif action_type == "CREATE":
                         total_actions_evaluated += 1
