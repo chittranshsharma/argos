@@ -74,32 +74,11 @@ To illustrate the end-to-end flow, below is a live strategic forecast generated,
 
 ---
 
-## 3. System Interfaces
-
-Argos exposes strategic insights, active forecasts, and ingestion health via a web-based dashboard interface.
-
-### 3.1 Platform Dashboard
-The core interface aggregates company profiles, calculated intelligence scores, and key strategic themes extracted from signal clusters.
-
-![Dashboard Interface](assets/dashboard_screenshot.png)
-
-### 3.2 Hypothesis & Forecast Registry
-All active, unresolved predictions are committed to the Forecast Registry with their respective deadline days, observations, and structured measurements.
-
-![Forecast Registry](assets/registry_screenshot.png)
-
-### 3.3 Scorecard & Ingestion Analytics
-Ingestion metrics and active scorecard statuses are consolidated, tracking overall forecast volume, resolution rates, and quality trends.
-
-![Scorecard Metrics](assets/scorecard_screenshot.png)
-
----
-
-## 4. Platform Architecture
+## 3. Platform Architecture
 
 The system is designed around a decoupled, pipeline-driven architecture. The workflow begins at the ingestion boundary, flows through structural distillation layers, passes strict validation gates, and is stored in the Forecast Registry where the Outcome Tracker periodically resolves states against reality.
 
-### 4.1 Complete System Dataflow
+### 3.1 Complete System Dataflow
 
 ```mermaid
 graph TD
@@ -221,16 +200,16 @@ graph TD
 
 ---
 
-## 5. Platform Capabilities
+## 4. Platform Capabilities
 
-### 5.1 Signal Ingestion & Deduplication
+### 4.1 Signal Ingestion & Deduplication
 Argos monitors and structures multiple unstructured signal channels. Rather than treating all signals equally, the ingestion node standardizes raw formats, removes redundancy, and evaluates context.
 
 *   **Multi-Channel Scrapers**: Parallel agents run to pull corporate movements (executive changes), engineering signals (repository commits, updates), commercial actions (partnerships, enterprise contracts), and general news indicators (Google/Bing news feeds, HackerNews discussions).
 *   **ThreadPoolExecutor Execution**: Ingestion agents run concurrently across monitored company portfolios to balance rate limits against scraping latency.
 *   **Signal Deduplication**: URL-based and semantic hashes prevent multiple reports of the same event from inflating downstream intelligence weights.
 
-### 5.2 Deterministic Attribution Engine
+### 4.2 Deterministic Attribution Engine
 A critical bottleneck in competitive intelligence is "wrong company attribution" (e.g., a generic note-taking trick article incorrectly assigned to Figma). Argos addresses this through a strict, **Deterministic Attribution Engine** that bypasses LLM subjectivity.
 
 ```
@@ -253,7 +232,7 @@ Every incoming signal is decorated with:
 > [!IMPORTANT]
 > **Non-Destructive Storage**: High-noise or low-confidence signals are **not** deleted. They are saved in the database with their low confidence scores and flagged as `NOISE`. This preserves the historical dataset to evaluate source contamination rates over time, while safely preventing noise from polluting downstream engines.
 
-### 5.3 Strategic Intelligence & Tension Layer
+### 4.3 Strategic Intelligence & Tension Layer
 Raw signals are rarely strategic on their own. The Intelligence Layer processes signal clusters to identify underlying commercial pressures.
 
 *   **Signal Compression**: Large signal logs are synthesized into compressed observations to remove narrative fluff while retaining dates, figures, and target entities.
@@ -261,16 +240,16 @@ Raw signals are rarely strategic on their own. The Intelligence Layer processes 
 *   **Low-Overlap Filtering**: Candidate strategic elements with excessive thematic overlap are collapsed to prevent redundant hypothesis generation.
 *   **Directionality Check**: Confirms that evidence points to a tension direction rather than a flat status-quo observation.
 
-### 5.4 The Hypothesis Engine
+### 4.4 The Hypothesis Engine
 The Hypothesis Engine is the core generator of strategic predictions. It converts tensions into falsifiable statements. It is built around a structured, multi-step validation pipeline.
 
-#### 5.4.1 The Observation-Interpretation-Prediction Triad
+#### 4.4.1 The Observation-Interpretation-Prediction Triad
 Every hypothesis must be constructed around three elements:
 1.  **Observation**: Concrete facts currently visible in the signal stream (e.g., *OpenAI hiring custom silicon engineers and partnering with Broadcom*).
 2.  **Interpretation**: The latent strategic priority implied by the facts (e.g., *OpenAI is prioritizing custom hardware control to decrease dependence on NVIDIA*).
 3.  **Prediction**: A falsifiable future event that will verify the strategic direction.
 
-#### 5.4.2 Structured Prediction Schema
+#### 4.4.2 Structured Prediction Schema
 To prevent vague forecasting, predictions must follow a strict, database-enforced schema:
 
 | Schema Field | Target Description | Example |
@@ -280,7 +259,7 @@ To prevent vague forecasting, predictions must follow a strict, database-enforce
 | **`prediction_deadline_days`**| The deterministic number of days until the forecast window closes. | `180` days |
 | **`prediction_measurement`** | The verifiable metric that confirms the event occurred. | Public press release containing named product details |
 
-#### 5.4.3 Validation Gates
+#### 4.4.3 Validation Gates
 Generic LLM outputs (e.g. *"Google will focus on AI research"*) are useless for forecasting. Argos rejects generic or unfalsifiable candidates through automated validations:
 
 *   **Freshness Gate**: Discards proposals built on old news or duplicate assumptions.
@@ -290,7 +269,7 @@ Generic LLM outputs (e.g. *"Google will focus on AI research"*) are useless for 
 
 ---
 
-## 6. The Forecast Registry & Outcome Tracker
+## 5. The Forecast Registry & Outcome Tracker
 
 Once a hypothesis passes validation, it is committed to the database, triggering the **Forecast Registry**.
 
@@ -323,7 +302,7 @@ Once a hypothesis passes validation, it is committed to the database, triggering
                                                                     (Terminal)
 ```
 
-### 6.1 Registry State Machine
+### 5.1 Registry State Machine
 The registry avoids binary evaluation. Because predictions unfold over time, outcomes transition through a state machine:
 
 *   **`UNRESOLVED`**: The initial state. No definitive confirming or contradicting evidence has been scraped.
@@ -333,7 +312,7 @@ The registry avoids binary evaluation. Because predictions unfold over time, out
 *   **`INCORRECT`**: A terminal state. Triggered by consecutive contradiction signals, indicating the forecast failed.
 *   **`EXPIRED`**: A terminal state. The deadline window closed without confirming evidence.
 
-### 6.2 Outcome Tracker
+### 5.2 Outcome Tracker
 The Outcome Tracker evaluates pending predictions once every 6 hours.
 
 *   **Deterministic Expiration**: Tracks timelines without LLM intervention. If `now > created_at + deadline`, the row is immediately flagged as `EXPIRED`.
@@ -348,11 +327,11 @@ The Outcome Tracker evaluates pending predictions once every 6 hours.
 
 ---
 
-## 7. Measured System Performance
+## 6. Measured System Performance
 
 Argos anchors its development in concrete evaluation metrics. Below are the performance parameters retrieved from the latest system runs.
 
-### 7.1 Live System Ingestion & Registry Metrics
+### 6.1 Live System Ingestion & Registry Metrics
 
 | Metric | Measured Value | Scope |
 | :--- | :---: | :--- |
@@ -364,7 +343,7 @@ Argos anchors its development in concrete evaluation metrics. Below are the perf
 | **Contradicted Predictions** | 1 | Opposing signals detected (`CONTRADICTED`) |
 | **Supported Predictions** | 25 | Directional evidence matches (`SUPPORTED`) |
 
-### 7.2 Evaluative Precision Scores
+### 6.2 Evaluative Precision Scores
 
 These accuracy scores are derived from manual human audits verifying the tracker's autonomous verdict classifications:
 
@@ -374,7 +353,7 @@ These accuracy scores are derived from manual human audits verifying the tracker
 
 ---
 
-## 8. Database Schema & Tables
+## 7. Database Schema & Tables
 
 Argos utilizes a hybrid Supabase database schema. Key columns and relationships are described below.
 
@@ -404,7 +383,7 @@ Argos utilizes a hybrid Supabase database schema. Key columns and relationships 
        +--------------------+          +--------------------+
 ```
 
-### 8.1 Tables Responsibility Matrix
+### 7.1 Tables Responsibility Matrix
 
 #### `companies`
 Stores tracked targets, websites, and configuration parameters (such as RSS keywords and ProductHunt slugs). It tracks the system's scraping cadence via `last_monitored` and calculates target health via `intelligence_score`.
@@ -423,17 +402,17 @@ Stores logs of the Hypothesis Engine's generation checks, preserving details for
 
 ---
 
-## 9. Audit & Validation Framework
+## 8. Audit & Validation Framework
 
 Argos utilizes three audit scripts to measure pipeline accuracy.
 
-### 9.1 Hypothesis Verification (CEO Test V3)
+### 8.1 Hypothesis Verification (CEO Test V3)
 Evaluates hypothesis generation quality using an automated scoring script. It runs candidates through three assessment layers:
 *   **Genericity Filter**: Discards generic summaries.
 *   **Opposite Check**: Verifies that the strategic opposite is a viable business option.
 *   **Falsifiability Check**: Confirms that prediction parameters can be measured.
 
-### 9.2 Outcome Accuracy (Resolution Audit)
+### 8.2 Outcome Accuracy (Resolution Audit)
 Runs a precision check on tracker outcomes:
 ```bash
 python backend/audit_resolution_harness.py --generate
@@ -447,7 +426,7 @@ This separates deterministic `EXPIRED` cases to calculate the actual precision o
 *   **Contradicted Precision**: Validates that contradictions match reality.
 *   **Supported Accuracy**: Checks directional signal alignment.
 
-### 9.3 Ingestion Quality (Attribution Audit)
+### 8.3 Ingestion Quality (Attribution Audit)
 Runs a deterministic audit across signals to calculate ingestion quality metrics:
 *   **`Wrong Company %`**: The primary metric tracking incorrect attribution.
 *   **Weighted Signal Quality**: The company-level quality metric:
@@ -455,7 +434,7 @@ $$\text{Weighted Quality} = \frac{\sum (\text{signal} \times \text{attribution\_
 
 ---
 
-## 10. Operations & Scale
+## 9. Operations & Scale
 
 The system is configured for automated execution:
 
@@ -466,7 +445,7 @@ The system is configured for automated execution:
 
 ---
 
-## 11. Product Roadmap
+## 10. Product Roadmap
 
 The development roadmap is structured to improve the system's self-learning capabilities.
 
