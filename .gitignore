@@ -66,8 +66,10 @@ complete_commits.py
 *.csv
 *.tsv
 *.log
+*.html
 calibration/
 docs/
+
 resolution_criteria_v1.md
 backend/ceo_evaluation_v2.md
 backend/sprint_d_hypotheses.json
