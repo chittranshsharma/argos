@@ -30,7 +30,7 @@ tracker = PredictionTracker()
 
 TRAP_CASES = [
     {
-        "name": "OpenAI Enterprise Platform — Trap: partnership ≠ platform launch",
+        "name": "OpenAI Enterprise Platform — Trap: partnership is not platform launch",
         "hypothesis": {
             "id": "test-001",
             "title": "OpenAI will launch a dedicated enterprise data platform",
@@ -50,10 +50,10 @@ TRAP_CASES = [
              "content": "OpenAI posted 12 new enterprise sales engineering roles focused on Fortune 500 deployments.", "collected_at": "2026-06-03"},
         ],
         "expected": "SUPPORTED",  # Partnerships suggest enterprise focus but don't confirm platform LAUNCH
-        "trap_description": "Enterprise partnerships ≠ dedicated data platform launch",
+        "trap_description": "Enterprise partnerships do not equal dedicated data platform launch",
     },
     {
-        "name": "Anthropic Mythos re-enable — Trap: regulatory discussion ≠ re-enablement",
+        "name": "Anthropic Mythos re-enable — Trap: regulatory discussion is not re-enablement",
         "hypothesis": {
             "id": "test-002",
             "title": "Anthropic will re-enable Mythos and Fable models in restricted markets",
@@ -73,10 +73,10 @@ TRAP_CASES = [
              "content": "Anthropic now requires government ID verification for new API subscribers in restricted jurisdictions.", "collected_at": "2026-06-12"},
         ],
         "expected": "SUPPORTED",  # Lobbying ≠ re-enablement. Restrictions still in place.
-        "trap_description": "Regulatory lobbying and compliance ≠ actual model re-enablement",
+        "trap_description": "Regulatory lobbying and compliance do not equal actual model re-enablement",
     },
     {
-        "name": "Stripe Global Expansion — Trap: conference mention ≠ market launch",
+        "name": "Stripe Global Expansion — Trap: conference mention is not market launch",
         "hypothesis": {
             "id": "test-003",
             "title": "Stripe will launch payments infrastructure in Sub-Saharan Africa",
@@ -96,7 +96,7 @@ TRAP_CASES = [
              "content": "Stripe announced record payment volume driven by strong growth in North America and Europe.", "collected_at": "2026-06-08"},
         ],
         "expected": "UNCHANGED",  # CEO mention and a hiring role ≠ market launch
-        "trap_description": "Executive comment + hiring ≠ market launch announcement",
+        "trap_description": "Executive comment + hiring do not equal market launch announcement",
     },
     {
         "name": "CONTRADICTED precision — Trap: should not flip to CONFIRMED",
@@ -147,10 +147,10 @@ def run_adversarial():
         passed = actual == case["expected"]
         if passed:
             passes += 1
-            symbol = "✅ PASS"
+            symbol = "SUCCESS: PASS"
         else:
             fails += 1
-            symbol = f"❌ FAIL (got {actual}, expected {case['expected']})"
+            symbol = f"FAILED: FAIL (got {actual}, expected {case['expected']})"
 
         print(f"  Result: {symbol}")
         print(f"  Verdict confidence: {verdict.get('confidence', '?')}")
@@ -173,14 +173,14 @@ def run_adversarial():
     print(f"ADVERSARIAL RESULTS: {passes}/{len(TRAP_CASES)} passed")
 
     if fails == 0:
-        print("✅ All trap cases handled correctly. CONFIRMED precision is protected.")
+        print("SUCCESS: All trap cases handled correctly. CONFIRMED precision is protected.")
     else:
-        print(f"❌ {fails} trap case(s) failed. Tracker over-promoting verdicts.")
+        print(f"ERROR: {fails} trap case(s) failed. Tracker over-promoting verdicts.")
         print()
         print("FAILED CASES:")
         for r in results:
             if not r["passed"]:
-                print(f"  [{r['expected']} → {r['actual']}] {r['name']}")
+                print(f"  [{r['expected']} -> {r['actual']}] {r['name']}")
                 print(f"    Reasoning: {r['reasoning']}")
 
     print()

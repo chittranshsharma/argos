@@ -150,7 +150,19 @@ class PredictionTracker:
                     unchanged += 1
                     continue
 
-                verdict = self._classify_evidence(hyp, signals)
+                # Filter out low-confidence attribution noise (< 0.20)
+                seen_count = len(signals)
+                used_signals = [s for s in signals if s.get("attribution_confidence", 1.0) >= 0.20]
+                filtered_count = seen_count - len(used_signals)
+                
+                if filtered_count > 0:
+                    logger.info(f"[PredictionTracker] Filtered {filtered_count}/{seen_count} noise signals for {company_name}")
+                    
+                if not used_signals:
+                    unchanged += 1
+                    continue
+
+                verdict = self._classify_evidence(hyp, used_signals)
                 new_status = _VERDICT_TO_STATUS.get(verdict["verdict"])
 
                 if new_status is None:
@@ -268,7 +280,8 @@ class PredictionTracker:
 
         # Compact signal context — most recent 20, title + summary only
         signal_lines = "\n".join([
-            f"- [{s.get('signal_type', '?')}] {s.get('title', '')}: "
+            f"- [{s.get('signal_type', '?')}] {s.get('title', '')} "
+            f"[Source Attribution: {s.get('attribution_type', 'INDUSTRY')} (Confidence: {s.get('attribution_confidence', 0.50)})]: "
             f"{str(s.get('summary', s.get('content', '')))[:120]}"
             for s in signals[:20]
         ])
@@ -316,7 +329,12 @@ CRITICAL RULES:
 4. CONTRADICTED means: signals indicate the predicted event will NOT happen or the opposite occurred.
    A delay or slower progress is NOT contradiction unless it explicitly negates the prediction.
 
-5. UNCHANGED means: signals are about unrelated topics, or are purely contextual/background.
+5. EVIDENCE ATTRIBUTION WEIGHTING:
+   - Every signal is tagged with a 'Source Attribution' class (DIRECT, PARTNER, INDUSTRY, NOISE) and a 'Confidence' score.
+   - Give the highest precedence to DIRECT source attributions when verifying outcomes.
+   - Treat INDUSTRY and PARTNER media reports with lower confidence. A low-confidence/third-party mention alone is generally insufficient to confirm a prediction outcome unless it is explicitly verifying a completed action.
+
+6. UNCHANGED means: signals are about unrelated topics, or are purely contextual/background.
 
 RECENT SIGNALS (most recent first):
 {signal_lines}

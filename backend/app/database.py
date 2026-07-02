@@ -103,7 +103,8 @@ def save_signal(signal_data: dict) -> dict:
         db_signal = signal_data.copy()
         raw_data = db_signal.get("raw_data", {})
         
-        for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload", "review_status"]:
+        for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload", "review_status", 
+                    "attribution_confidence", "attribution_type", "attribution_reason", "attribution_version", "matched_companies", "primary_company"]:
             if key in db_signal:
                 raw_data[key] = db_signal.pop(key)
                 
@@ -136,7 +137,8 @@ def get_signals(company_id: str, limit: int = 50, source: str = None) -> list:
         signals = response.data or []
         for s in signals:
             raw = s.get("raw_data", {})
-            for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload"]:
+            for key in ["confidence", "subtype", "source_id", "agent", "extraction_model", "occurred_at", "payload",
+                        "attribution_confidence", "attribution_type", "attribution_reason", "attribution_version", "matched_companies", "primary_company"]:
                 if key in raw:
                     s[key] = raw[key]
         
@@ -744,4 +746,106 @@ def get_prediction_outcomes_scorecard() -> dict:
     except Exception as e:
         logger.error(f"Error fetching prediction outcomes scorecard: {e}")
         return {}
+
+
+def get_company_attribution_scorecard() -> list:
+    """Return company-level signal quality and filter rate statistics."""
+    try:
+        client = get_supabase_client()
+        # Fetch all active companies to map IDs to names
+        companies_res = client.table("companies").select("id, name").execute()
+        companies = companies_res.data or []
+        company_names = {c["id"]: c["name"] for c in companies}
+        
+        # Fetch all signals
+        signals_res = client.table("signals").select("id, company_id, raw_data").execute()
+        signals = signals_res.data or []
+        
+        # Group signals by company_id
+        company_signals = {}
+        for s in signals:
+            co_id = s.get("company_id")
+            if not co_id:
+                continue
+            if co_id not in company_signals:
+                company_signals[co_id] = []
+            company_signals[co_id].append(s)
+            
+        metrics = []
+        for co_id, name in company_names.items():
+            sigs = company_signals.get(co_id, [])
+            total = len(sigs)
+            
+            if total == 0:
+                metrics.append({
+                    "company_id": co_id,
+                    "company_name": name,
+                    "weighted_signal_quality": 0.0,
+                    "direct_pct": 0.0,
+                    "partner_pct": 0.0,
+                    "industry_pct": 0.0,
+                    "noise_pct": 0.0,
+                    "signals_filtered_pct": 0.0,
+                    "tracker_signals_seen": 0,
+                    "tracker_signals_used": 0,
+                    "tracker_signals_filtered": 0
+                })
+                continue
+                
+            direct = 0
+            partner = 0
+            industry = 0
+            noise = 0
+            
+            for s in sigs:
+                raw = s.get("raw_data", {}) or {}
+                conf = raw.get("attribution_confidence", 0.0)
+                t = raw.get("attribution_type")
+                if not t:
+                    if conf >= 0.80:
+                        t = "DIRECT"
+                    elif conf >= 0.50:
+                        t = "PARTNER"
+                    elif conf >= 0.20:
+                        t = "INDUSTRY"
+                    else:
+                        t = "NOISE"
+                
+                if t == "DIRECT":
+                    direct += 1
+                elif t == "PARTNER":
+                    partner += 1
+                elif t == "INDUSTRY":
+                    industry += 1
+                else:
+                    noise += 1
+                    
+            # Weighted quality = (DIRECT*1.0 + PARTNER*0.7 + INDUSTRY*0.5 + NOISE*0.1) / total
+            quality = (direct * 1.0 + partner * 0.7 + industry * 0.5 + noise * 0.1) / total
+            
+            # Tracker filters: signals with confidence < 0.20 are NOISE and are filtered
+            seen = total
+            filtered = noise
+            used = total - noise
+            
+            metrics.append({
+                "company_id": co_id,
+                "company_name": name,
+                "weighted_signal_quality": round(quality, 2),
+                "direct_pct": round(direct / total * 100, 1),
+                "partner_pct": round(partner / total * 100, 1),
+                "industry_pct": round(industry / total * 100, 1),
+                "noise_pct": round(noise / total * 100, 1),
+                "signals_filtered_pct": round(filtered / seen * 100, 1) if seen > 0 else 0.0,
+                "tracker_signals_seen": seen,
+                "tracker_signals_used": used,
+                "tracker_signals_filtered": filtered
+            })
+            
+        metrics.sort(key=lambda x: x["company_name"])
+        return metrics
+    except Exception as e:
+        logger.error(f"Error fetching company attribution scorecard: {e}")
+        return []
+
 

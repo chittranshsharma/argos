@@ -661,7 +661,7 @@ async def get_strategy_portfolio():
 async def get_analyst_scorecard():
     """Scorecard for hypothesis accuracy."""
     try:
-        from app.database import get_supabase_client, get_prediction_outcomes_scorecard as get_forecast_scorecard
+        from app.database import get_supabase_client, get_prediction_outcomes_scorecard as get_forecast_scorecard, get_company_attribution_scorecard
         client = get_supabase_client()
         
         # We need all hypotheses that have an outcome
@@ -710,6 +710,7 @@ async def get_analyst_scorecard():
             "accuracy_by_type": type_accuracy,
             # Sprint 5A: Forecast Registry metrics
             **get_forecast_scorecard(),
+            "company_attribution_metrics": get_company_attribution_scorecard()
         }
     except Exception as e:
         return {"error": str(e)}
