@@ -53,3 +53,23 @@ argos_design_specification_v1.0.md
 argos_v1.0_engineering_data_state_specification.md
 argos_v1.0_engineering_handoff_package.md
 claude_handoff.md
+
+# Audit, log, and report files
+*audit*
+*results*
+*report*
+*evaluation*
+*.txt
+!backend/requirements.txt
+*.csv
+*.tsv
+*.log
+calibration/
+docs/
+resolution_criteria_v1.md
+backend/ceo_evaluation_v2.md
+backend/sprint_d_hypotheses.json
+backend/signal_audit.json
+backend/signal_audit_v2.json
+backend/ceo_evaluation_data.json
+
