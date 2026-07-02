@@ -685,7 +685,8 @@ def get_pending_prediction_outcomes() -> list:
 
 def update_prediction_outcome(outcome_id: str, status: str, reason: str,
                               evidence_signal_ids: list, evidence_count: int,
-                              verdict_payload: dict, confidence: float) -> dict:
+                              verdict_payload: dict, confidence: float,
+                              resolution_strength: float = 0.0) -> dict:
     """Transition a prediction_outcome to a new state with full audit payload."""
     try:
         client = get_supabase_client()
@@ -696,6 +697,7 @@ def update_prediction_outcome(outcome_id: str, status: str, reason: str,
             "evidence_count": evidence_count,
             "verdict_payload": verdict_payload,
             "confidence": confidence,
+            "resolution_strength": resolution_strength,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         if status in PREDICTION_TERMINAL_STATES:

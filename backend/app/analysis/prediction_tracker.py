@@ -30,6 +30,19 @@ from app.database import (
 
 logger = logging.getLogger(__name__)
 
+def extract_json_object(text: str) -> dict:
+    """Robustly extract the first valid JSON object from a string."""
+    import json
+    import re
+    match = re.search(r"\{", text)
+    if not match:
+        raise ValueError("No curly brace found in response.")
+    start_idx = match.start()
+    decoder = json.JSONDecoder()
+    obj, _ = decoder.raw_decode(text[start_idx:])
+    return obj
+
+
 # Verdicts that advance the state machine vs those that hold
 _ADVANCE_VERDICTS = {"SUPPORTED", "CONTRADICTED", "CONFIRMED"}
 
@@ -49,6 +62,20 @@ _OUTCOME_MAP = {
     "CONFIRMED": "CORRECT",
     "INCORRECT":  "INCORRECT",
 }
+
+# Resolution strength: continuous signal weight for future calibration.
+# CONFIRMED = 1.0 always. SUPPORTED scales with LLM confidence (0.2–0.6).
+# CONTRADICTED scales negatively. Store now, use in Sprint 5C.
+def _compute_resolution_strength(status: str, confidence: float) -> float:
+    conf = max(0.0, min(1.0, confidence or 0.5))
+    return {
+        "CONFIRMED":    1.0,
+        "SUPPORTED":    round(0.2 + conf * 0.4, 3),   # 0.2–0.60
+        "CONTRADICTED": round(-(0.3 + conf * 0.4), 3), # -0.30 to -0.70
+        "INCORRECT":    -1.0,
+        "EXPIRED":      -1.0,
+        "UNCHANGED":    0.0,
+    }.get(status, 0.0)
 
 
 class PredictionTracker:
@@ -104,6 +131,7 @@ class PredictionTracker:
                         evidence_count=outcome.get("evidence_count", 0),
                         verdict_payload={"auto": "deadline_expired"},
                         confidence=0.0,
+                        resolution_strength=_compute_resolution_strength("EXPIRED", 0.0),
                     )
                     # Mark hypothesis as resolved/expired
                     update_hypothesis(hyp["id"], {
@@ -160,6 +188,7 @@ class PredictionTracker:
                     evidence_count=len(all_ids),
                     verdict_payload=verdict,
                     confidence=verdict.get("confidence", 0.5),
+                    resolution_strength=_compute_resolution_strength(final_status, verdict.get("confidence", 0.5)),
                 )
 
                 # Sync hypothesis if terminal
@@ -178,6 +207,10 @@ class PredictionTracker:
                     f"[PredictionTracker] {current_status} → {final_status} "
                     f"for {hyp.get('id')} ({company_name})"
                 )
+
+                # Avoid slamming rate limits during loop
+                import time as _time
+                _time.sleep(2.0)
 
             except Exception as e:
                 logger.error(f"[PredictionTracker] Error processing outcome {outcome.get('id')}: {e}")
@@ -299,25 +332,23 @@ Return ONLY valid JSON:
 
         try:
             response = llm_invoke(self.llm, prompt)
-            match = re.search(r"\{.*\}", response, re.DOTALL)
-            if match:
-                result = json.loads(match.group())
-                verdict = result.get("verdict", "UNCHANGED")
+            result = extract_json_object(response)
+            verdict = result.get("verdict", "UNCHANGED")
 
-                # Enforce hard block on CONFIRMED for unstructured hypotheses
-                if confirmed_blocked and verdict == "CONFIRMED":
-                    result["verdict"] = "SUPPORTED"
-                    result["reasoning"] = (
-                        "[Auto-downgraded from CONFIRMED: prediction_event is unstructured] "
-                        + result.get("reasoning", "")
-                    )
+            # Enforce hard block on CONFIRMED for unstructured hypotheses
+            if confirmed_blocked and verdict == "CONFIRMED":
+                result["verdict"] = "SUPPORTED"
+                result["reasoning"] = (
+                    "[Auto-downgraded from CONFIRMED: prediction_event is unstructured] "
+                    + result.get("reasoning", "")
+                )
 
-                if result.get("verdict") not in ("CONFIRMED", "SUPPORTED", "CONTRADICTED", "UNCHANGED"):
-                    result["verdict"] = "UNCHANGED"
+            if result.get("verdict") not in ("CONFIRMED", "SUPPORTED", "CONTRADICTED", "UNCHANGED"):
+                result["verdict"] = "UNCHANGED"
 
-                # Tag whether this hypothesis has structured prediction fields
-                result["prediction_structured"] = is_structured
-                return result
+            # Tag whether this hypothesis has structured prediction fields
+            result["prediction_structured"] = is_structured
+            return result
         except Exception as e:
             logger.error(f"[PredictionTracker] LLM classification failed: {e}")
 
