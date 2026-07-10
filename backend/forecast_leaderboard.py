@@ -13,8 +13,13 @@ Run:
     python backend/forecast_leaderboard.py
 """
 
-import os
 import sys
+import os
+import math
+from dotenv import load_dotenv
+
+if sys.stdout.encoding.lower() != 'utf-8' and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 sys.path.insert(0, os.path.join(os.getcwd(), "backend"))
 
