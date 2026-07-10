@@ -849,3 +849,210 @@ def get_company_attribution_scorecard() -> list:
         return []
 
 
+# ── Forecast Analytics (Sprint 5D) ─────────────────────────────────────────
+
+def _classify_horizon(deadline_days) -> str:
+    """Classify a deadline_days value into a horizon label."""
+    try:
+        d = int(deadline_days)
+    except (ValueError, TypeError):
+        return "Unknown"
+    if d <= 7:
+        return "7d"
+    elif d <= 30:
+        return "30d"
+    elif d <= 90:
+        return "90d"
+    else:
+        return "90d+"
+
+
+def get_forecast_horizon_breakdown() -> list:
+    """
+    Return per-horizon accuracy and resolution-volume metrics.
+
+    Each row: {
+        horizon, active, resolved, confirmed, contradicted, expired,
+        hit_rate, resolution_rate
+    }
+
+    Hit Rate        = Confirmed / (Confirmed + Contradicted)
+                      Expired excluded — they weren't scored, not wrong.
+    Resolution Rate = Resolved / (Active + Resolved)
+                      Tells you whether slow resolution is a data or deadline problem.
+    """
+    try:
+        client = get_supabase_client()
+        res = client.table("prediction_outcomes").select(
+            "status, confidence, hypotheses(prediction_deadline_days)"
+        ).execute()
+        rows = res.data or []
+
+        buckets: dict[str, dict] = {}
+
+        for r in rows:
+            hyp = r.get("hypotheses") or {}
+            deadline = hyp.get("prediction_deadline_days", 30)
+            horizon = _classify_horizon(deadline)
+            status = r.get("status", "UNRESOLVED")
+
+            if horizon not in buckets:
+                buckets[horizon] = {"active": 0, "confirmed": 0, "contradicted": 0, "expired": 0}
+
+            if status == "CONFIRMED":
+                buckets[horizon]["confirmed"] += 1
+            elif status in ("INCORRECT", "CONTRADICTED"):
+                buckets[horizon]["contradicted"] += 1
+            elif status == "EXPIRED":
+                buckets[horizon]["expired"] += 1
+            else:
+                buckets[horizon]["active"] += 1
+
+        results = []
+        for horizon in ("7d", "30d", "90d", "90d+", "Unknown"):
+            if horizon not in buckets:
+                continue
+            b = buckets[horizon]
+            resolved = b["confirmed"] + b["contradicted"] + b["expired"]
+            decisive  = b["confirmed"] + b["contradicted"]
+            total     = b["active"] + resolved
+            hit_rate        = round(b["confirmed"] / decisive, 3) if decisive > 0 else None
+            resolution_rate = round(resolved / total, 3) if total > 0 else None
+            results.append({
+                "horizon": horizon,
+                "active": b["active"],
+                "resolved": resolved,
+                "confirmed": b["confirmed"],
+                "contradicted": b["contradicted"],
+                "expired": b["expired"],
+                "hit_rate": hit_rate,
+                "resolution_rate": resolution_rate,
+            })
+
+        return results
+    except Exception as e:
+        logger.error(f"Error fetching forecast horizon breakdown: {e}")
+        return []
+
+
+def get_forecast_confidence_calibration() -> dict:
+    """
+    Group resolved prediction_outcomes into 0.1-wide confidence buckets.
+
+    Returns:
+        {
+            "buckets": [...],
+            "verdict":        str | None,   # None until minimum sample size is met
+            "verdict_reason": str,
+        }
+
+    Calibration verdict is ONLY issued when BOTH are true:
+      - ≥ 3 confidence buckets are populated
+      - Each populated bucket has ≥ 10 resolved forecasts
+    Otherwise verdict is None and verdict_reason explains why.
+    """
+    BUCKET_DEFS = [
+        ("0.00–0.49", 0.00, 0.49),
+        ("0.50–0.59", 0.50, 0.59),
+        ("0.60–0.69", 0.60, 0.69),
+        ("0.70–0.79", 0.70, 0.79),
+        ("0.80–0.89", 0.80, 0.89),
+        ("0.90–1.00", 0.90, 1.00),
+    ]
+    MIN_BUCKETS     = 3
+    MIN_PER_BUCKET  = 10
+
+    try:
+        client = get_supabase_client()
+        res = client.table("prediction_outcomes").select("status, confidence").in_(
+            "status", ["CONFIRMED", "INCORRECT", "CONTRADICTED", "EXPIRED"]
+        ).execute()
+        rows = res.data or []
+
+        bucket_data: dict[str, dict] = {
+            label: {"lo": lo, "hi": hi, "resolved": 0, "confirmed": 0,
+                    "contradicted": 0, "expired": 0}
+            for label, lo, hi in BUCKET_DEFS
+        }
+
+        for r in rows:
+            conf   = r.get("confidence") or 0.0
+            status = r.get("status", "")
+            for label, lo, hi in BUCKET_DEFS:
+                if lo <= conf <= hi:
+                    d = bucket_data[label]
+                    d["resolved"] += 1
+                    if status == "CONFIRMED":
+                        d["confirmed"] += 1
+                    elif status in ("INCORRECT", "CONTRADICTED"):
+                        d["contradicted"] += 1
+                    elif status == "EXPIRED":
+                        d["expired"] += 1
+                    break
+
+        buckets_out = []
+        for label, lo, hi in BUCKET_DEFS:
+            d        = bucket_data[label]
+            decisive = d["confirmed"] + d["contradicted"]
+            hit_rate = round(d["confirmed"] / decisive, 3) if decisive > 0 else None
+            buckets_out.append({
+                "label":        label,
+                "lo":           lo,
+                "hi":           hi,
+                "resolved":     d["resolved"],
+                "confirmed":    d["confirmed"],
+                "contradicted": d["contradicted"],
+                "expired":      d["expired"],
+                "hit_rate":     hit_rate,
+            })
+
+        # ── Calibration verdict guard ──────────────────────────────────
+        # Require: ≥3 populated buckets AND each has ≥10 resolved forecasts.
+        # Without both conditions, any verdict would be statistically meaningless.
+        populated           = [b for b in buckets_out if b["resolved"] > 0]
+        populated_sufficient = [b for b in populated if b["resolved"] >= MIN_PER_BUCKET]
+
+        verdict = None
+        if len(populated) < MIN_BUCKETS:
+            verdict_reason = (
+                f"Insufficient data: only {len(populated)} confidence bucket(s) populated. "
+                f"Need ≥{MIN_BUCKETS} before any verdict is meaningful."
+            )
+        elif len(populated_sufficient) < MIN_BUCKETS:
+            smallest = min(b["resolved"] for b in populated)
+            verdict_reason = (
+                f"Insufficient sample size: need ≥{MIN_PER_BUCKET} resolved forecasts per bucket. "
+                f"Smallest populated bucket has only {smallest}. "
+                f"A 1/1 bucket and a 0/1 bucket do not constitute evidence."
+            )
+        else:
+            rates  = [b["hit_rate"] for b in populated_sufficient if b["hit_rate"] is not None]
+            spread = max(rates) - min(rates) if len(rates) >= 2 else 0.0
+            if spread >= 0.15:
+                verdict = "CORRELATED"
+                verdict_reason = (
+                    f"Confidence appears predictive: {spread:.0%} spread across "
+                    f"{len(populated_sufficient)} buckets "
+                    f"(max {max(rates):.0%}, min {min(rates):.0%})."
+                )
+            elif spread >= 0.05:
+                verdict = "WEAK"
+                verdict_reason = (
+                    f"Weak correlation: {spread:.0%} spread. May improve with more data."
+                )
+            else:
+                verdict = "UNCORRELATED"
+                verdict_reason = (
+                    f"Confidence appears uncorrelated: only {spread:.0%} spread across "
+                    f"{len(populated_sufficient)} buckets. "
+                    f"Confidence system may need redesign before Sprint 5C."
+                )
+
+        return {
+            "buckets":        buckets_out,
+            "verdict":        verdict,
+            "verdict_reason": verdict_reason,
+        }
+    except Exception as e:
+        logger.error(f"Error fetching forecast confidence calibration: {e}")
+        return {"buckets": [], "verdict": None, "verdict_reason": str(e)}

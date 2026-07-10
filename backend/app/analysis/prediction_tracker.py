@@ -25,6 +25,7 @@ from app.database import (
     update_prediction_outcome,
     get_signals,
     update_hypothesis,
+    save_analytics_snapshot,
     PREDICTION_TERMINAL_STATES,
 )
 
@@ -101,7 +102,10 @@ class PredictionTracker:
     def run(self) -> dict:
         """
         Main cycle. Returns summary metrics for the scheduler log.
+        Each run is persisted to analytics_snapshots so the measurement
+        pipeline has a historical record of every cycle.
         """
+        cycle_start = datetime.now(timezone.utc)
         pending = get_pending_prediction_outcomes()
         logger.info(f"[PredictionTracker] {len(pending)} pending outcomes to evaluate.")
 
@@ -109,6 +113,7 @@ class PredictionTracker:
         advanced = 0
         unchanged = 0
         errors = 0
+        contradicted_stuck = 0  # SUPPORTED verdict arrived for CONTRADICTED outcome
 
         for outcome in pending:
             try:
@@ -150,6 +155,23 @@ class PredictionTracker:
                     unchanged += 1
                     continue
 
+                # ── Stale-signal guard ────────────────────────────────────
+                # If the newest available signal is not newer than what was
+                # already evaluated, re-running the LLM on identical evidence
+                # produces noise, not information. Skip to avoid spurious
+                # CONTRADICTED→INCORRECT transitions from temperature variance.
+                newest_signal_ts = signals[0].get("collected_at", "") if signals else ""
+                last_eval_ts = outcome.get("verdict_payload", {}) or {}
+                last_eval_ts = last_eval_ts.get("evaluated_signal_ts", "")
+                if newest_signal_ts and last_eval_ts and newest_signal_ts <= last_eval_ts:
+                    unchanged += 1
+                    logger.debug(
+                        f"[PredictionTracker] Skipped stale-signal re-eval for "
+                        f"{outcome_id[:8]} (newest signal {newest_signal_ts[:10]} "
+                        f"<= last eval {last_eval_ts[:10]})"
+                    )
+                    continue
+
                 # Filter out low-confidence attribution noise (< 0.20)
                 seen_count = len(signals)
                 used_signals = [s for s in signals if s.get("attribution_confidence", 1.0) >= 0.20]
@@ -170,12 +192,17 @@ class PredictionTracker:
                     unchanged += 1
                     continue
 
-                # Determine whether this resolves the hypothesis
-                is_terminal = (
-                    new_status == "CONFIRMED" or
-                    (new_status == "CONFIRMED" and current_status == "CONTRADICTED") or
-                    (current_status == "CONTRADICTED" and new_status == "CONTRADICTED")
-                )
+                # Log when SUPPORTED arrives for a CONTRADICTED outcome.
+                # These hypotheses are stuck and at risk of expiring without
+                # a fair resolution. Visibility into this is needed to
+                # distinguish "hypothesis was wrong" from "hypothesis was stuck".
+                if current_status == "CONTRADICTED" and new_status == "SUPPORTED":
+                    contradicted_stuck += 1
+                    logger.info(
+                        f"[PredictionTracker] CONTRADICTED-STUCK: SUPPORTED verdict "
+                        f"arrived for {outcome_id[:8]} — hypothesis remains CONTRADICTED, "
+                        f"may expire without resolution."
+                    )
 
                 # CONTRADICTED → CONFIRMED: recovery case → mark CONFIRMED terminal
                 # CONTRADICTED + another CONTRADICTED verdict → mark INCORRECT terminal
@@ -191,6 +218,10 @@ class PredictionTracker:
 
                 matching_ids = [s["id"] for s in signals if s.get("title") in verdict.get("matching_signals", [])]
                 all_ids = list(set(outcome.get("evidence_signal_ids", []) + matching_ids))
+
+                # Stamp the newest signal timestamp so the stale-signal guard
+                # can skip re-evaluation on the next cycle if no new signals arrived.
+                verdict["evaluated_signal_ts"] = newest_signal_ts
 
                 update_prediction_outcome(
                     outcome_id=outcome_id,
@@ -234,8 +265,20 @@ class PredictionTracker:
             "advanced": advanced,
             "unchanged": unchanged,
             "errors": errors,
+            "contradicted_stuck": contradicted_stuck,
+            "cycle_started_at": cycle_start.isoformat(),
+            "cycle_finished_at": datetime.now(timezone.utc).isoformat(),
         }
         logger.info(f"[PredictionTracker] Cycle complete: {summary}")
+
+        # Persist every cycle to analytics_snapshots.
+        # This is the audit trail that answers: Did the tracker run? Did it error?
+        # How many forecasts changed state? Query metric_type='tracker_cycle'.
+        try:
+            save_analytics_snapshot("tracker_cycle", summary)
+        except Exception as _snap_err:
+            logger.warning(f"[PredictionTracker] Failed to persist cycle snapshot: {_snap_err}")
+
         return summary
 
     # ─────────────────────────────────────────────────────────────────────────

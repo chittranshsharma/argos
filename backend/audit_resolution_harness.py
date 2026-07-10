@@ -153,51 +153,108 @@ def score_report(csv_file):
         print(f"Generate more hypotheses and run the tracker to accumulate LLM classifications.")
         return
 
+    # Minimum-N gate constants
+    # Mirrors the sample-size guard in get_forecast_confidence_calibration().
+    # 1/1 = 100% is not evidence. Do not display PASS/FAIL symbols below threshold.
+    MIN_CONFIRMED_FOR_GATE = 10
+    MIN_CONTRADICTED_FOR_GATE = 5
+
     total = len(llm_scored)
-    agree = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "AGREE")
+    agree   = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "AGREE")
     partial = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "PARTIAL")
     disagree = sum(1 for r in llm_scored if r["human_verdict"].strip().upper() == "DISAGREE")
 
     # Resolution accuracy: AGREE=1, PARTIAL=0.5, DISAGREE=0 — excludes EXPIRED
     accuracy = (agree + 0.5 * partial) / total if total > 0 else 0
 
-    # CONFIRMED precision (the critical metric)
-    confirmed_rows = [r for r in llm_scored if r.get("tracker_status") == "CONFIRMED"]
-    confirmed_agree = sum(1 for r in confirmed_rows if r["human_verdict"].strip().upper() == "AGREE")
-    confirmed_precision = confirmed_agree / len(confirmed_rows) if confirmed_rows else None
+    # CONFIRMED precision (the critical metric for Sprint 5C gate)
+    confirmed_rows   = [r for r in llm_scored if r.get("tracker_status") == "CONFIRMED"]
+    confirmed_agree  = sum(1 for r in confirmed_rows if r["human_verdict"].strip().upper() == "AGREE")
+    confirmed_n      = len(confirmed_rows)
+    confirmed_precision = confirmed_agree / confirmed_n if confirmed_n else None
 
     # CONTRADICTED precision
-    contradicted_rows = [r for r in llm_scored if r.get("tracker_status") == "CONTRADICTED"]
+    contradicted_rows  = [r for r in llm_scored if r.get("tracker_status") == "CONTRADICTED"]
     contradicted_agree = sum(1 for r in contradicted_rows if r["human_verdict"].strip().upper() == "AGREE")
-    contradicted_precision = contradicted_agree / len(contradicted_rows) if contradicted_rows else None
+    contradicted_n     = len(contradicted_rows)
+    contradicted_precision = contradicted_agree / contradicted_n if contradicted_n else None
 
-    print("\n" + "=" * 60)
+    # Structured vs unstructured breakdown
+    # prediction_structured=True means the hypothesis had prediction_event set.
+    # These are the only rows where CONFIRMED is a meaningful measurement.
+    structured_rows   = [r for r in llm_scored if str(r.get("prediction_structured", "")).lower() == "true"]
+    unstructured_rows = [r for r in llm_scored if str(r.get("prediction_structured", "")).lower() != "true"]
+
+    def _accuracy(rows_subset):
+        if not rows_subset:
+            return None, 0, 0
+        a = sum(1 for r in rows_subset if r["human_verdict"].strip().upper() == "AGREE")
+        p = sum(1 for r in rows_subset if r["human_verdict"].strip().upper() == "PARTIAL")
+        n = len(rows_subset)
+        return (a + 0.5 * p) / n, n, a
+
+    struct_acc, struct_n, struct_agree     = _accuracy(structured_rows)
+    unstruct_acc, unstruct_n, unstruct_agree = _accuracy(unstructured_rows)
+
+    print("\n" + "=" * 70)
     print("RESOLUTION PRECISION REPORT")
-    print("=" * 60)
+    print("=" * 70)
     print(f"LLM-classified outcomes reviewed : {total}  (EXPIRED excluded: {expired_count})")
-    print(f"  AGREE           : {agree}  ({agree/total*100:.0f}%)")
-    print(f"  PARTIAL         : {partial}  ({partial/total*100:.0f}%)")
-    print(f"  DISAGREE        : {disagree}  ({disagree/total*100:.0f}%)")
+    print(f"  AGREE    : {agree}  ({agree/total*100:.0f}%)")
+    print(f"  PARTIAL  : {partial}  ({partial/total*100:.0f}%)")
+    print(f"  DISAGREE : {disagree}  ({disagree/total*100:.0f}%)")
+
+    # ── Structured / Unstructured split ──────────────────────────────────────
     print()
-    print("── PRIMARY METRICS (gate for calibration) ──")
+    print("── STRUCTURED vs UNSTRUCTURED ACCURACY ──")
+    print("   (Structured = hypothesis had prediction_event set)")
+    if struct_n > 0:
+        print(f"   Structured   ({struct_n:>3} rows): {struct_acc*100:.1f}%  ← headline metric")
+    else:
+        print(f"   Structured   (  0 rows): N/A  — no structured hypotheses audited yet")
+    if unstruct_n > 0:
+        print(f"   Unstructured ({unstruct_n:>3} rows): {unstruct_acc*100:.1f}%  ← narrative alignment, not prediction accuracy")
+    else:
+        print(f"   Unstructured (  0 rows): N/A")
+
+    # ── Primary precision gates ───────────────────────────────────────────────
+    print()
+    print("── PRIMARY GATES (Sprint 5C requires both PASS) ──")
+
     if confirmed_precision is not None:
-        gate_ok = confirmed_precision >= 0.85
-        symbol = "✅" if gate_ok else "🚨"
-        print(f"{symbol} CONFIRMED Precision : {confirmed_precision*100:.1f}%  ({confirmed_agree}/{len(confirmed_rows)}) ← must be >85% before calibration")
+        if confirmed_n < MIN_CONFIRMED_FOR_GATE:
+            # Do not show PASS/FAIL — sample too small to be meaningful.
+            print(f"   PENDING  CONFIRMED Precision : {confirmed_precision*100:.1f}%  "
+                  f"({confirmed_agree}/{confirmed_n})")
+            print(f"            Need >= {MIN_CONFIRMED_FOR_GATE} CONFIRMED outcomes before gate is valid. "
+                  f"Currently {confirmed_n}/{MIN_CONFIRMED_FOR_GATE}.")
+        else:
+            gate_ok = confirmed_precision >= 0.85
+            symbol = "PASS" if gate_ok else "FAIL"
+            print(f"   {symbol}    CONFIRMED Precision : {confirmed_precision*100:.1f}%  "
+                  f"({confirmed_agree}/{confirmed_n}) <- must be >85% before calibration")
     else:
-        print("   CONFIRMED Precision : No CONFIRMED outcomes scored yet")
+        print("   PENDING  CONFIRMED Precision : No CONFIRMED outcomes scored yet")
+
     if contradicted_precision is not None:
-        gate_ok = contradicted_precision >= 0.85
-        symbol = "✅" if gate_ok else "🚨"
-        print(f"{symbol} CONTRADICTED Precision: {contradicted_precision*100:.1f}%  ({contradicted_agree}/{len(contradicted_rows)})")
+        if contradicted_n < MIN_CONTRADICTED_FOR_GATE:
+            print(f"   PENDING  CONTRADICTED Precision: {contradicted_precision*100:.1f}%  "
+                  f"({contradicted_agree}/{contradicted_n})")
+            print(f"            Need >= {MIN_CONTRADICTED_FOR_GATE} CONTRADICTED outcomes before gate is valid.")
+        else:
+            gate_ok = contradicted_precision >= 0.85
+            symbol = "PASS" if gate_ok else "FAIL"
+            print(f"   {symbol}    CONTRADICTED Precision: {contradicted_precision*100:.1f}%  "
+                  f"({contradicted_agree}/{contradicted_n})")
     else:
-        print("   CONTRADICTED Precision: No CONTRADICTED outcomes scored yet")
+        print("   PENDING  CONTRADICTED Precision: No CONTRADICTED outcomes scored yet")
+
     print()
     print("── SECONDARY METRIC ──")
-    print(f"   Overall Resolution Accuracy: {accuracy*100:.1f}%  (AGREE+0.5×PARTIAL / total LLM rows)")
+    print(f"   Overall Resolution Accuracy: {accuracy*100:.1f}%  (AGREE+0.5xPARTIAL / total LLM rows)")
     print()
 
-    # Calibration gate
+    # Calibration gate summary
     if confirmed_precision is not None and confirmed_precision >= 0.85:
         print("✅ CONFIRMED Precision gate passed — calibration is safe to build.")
     elif confirmed_precision is not None:

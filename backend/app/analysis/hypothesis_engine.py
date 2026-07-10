@@ -5,6 +5,7 @@ Generates high-level strategic hypotheses based on correlations and recent signa
 
 import logging
 import json
+import os
 import re
 from app.llm import get_groq_llm, llm_invoke
 from app.analysis.signal_compressor import compress_signals
@@ -19,6 +20,32 @@ from app.database import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Forecast Mode ─────────────────────────────────────────────────────────────
+# NORMAL:        30–365 day horizons. Default for production.
+# SHORT_HORIZON: 14–45 day horizons. Use temporarily to accumulate
+#                50+ resolved forecasts for calibration.
+#                Toggle via env var: ARGOS_FORECAST_MODE=SHORT_HORIZON
+#                Revert to NORMAL once calibration corpus is large enough.
+FORECAST_MODE = os.getenv("ARGOS_FORECAST_MODE", "NORMAL").upper().strip()
+
+_SHORT_HORIZON_INJECTION = """
+═══════════════════════════════════════════════════
+SHORT-HORIZON CAMPAIGN MODE — ACTIVE
+═══════════════════════════════════════════════════
+For this cycle, ALL predictions MUST use short horizons:
+- prediction_deadline_days: between 14 and 45 (STRICTLY NO EXCEPTIONS)
+- predicted_time_horizon: "30_days"
+
+Focus on predictions that can be verified within 30 days:
+  - Product launches already announced with imminent dates
+  - Hiring announcements that resolve within weeks
+  - Partnership announcements with a short closing timeline
+  - Financial results that are scheduled to be released soon
+
+Do NOT use horizons of 60, 90, 180, or 365 days in this mode.
+═══════════════════════════════════════════════════
+"""
 
 # Valid theme constants mapped to signal subtypes for the deterministic scorer later
 VALID_THEMES = [
@@ -479,6 +506,11 @@ Rules:
             )
         # ─────────────────────────────────────────────────────────────────────
 
+        # Inject forecast mode block into the prompt
+        forecast_mode_injection = _SHORT_HORIZON_INJECTION if FORECAST_MODE == "SHORT_HORIZON" else ""
+        if FORECAST_MODE == "SHORT_HORIZON":
+            logger.info(f"[{company_name}] FORECAST_MODE=SHORT_HORIZON — constraining deadlines to 14-45 days")
+
         if not existing_hyps:
             action_instructions = "CRITICAL: There are NO existing hypotheses. You MUST use CREATE actions ONLY. UPDATE actions are explicitly forbidden."
         else:
@@ -526,6 +558,8 @@ For every CREATE action you MUST produce the following fields in sequence:
      * prediction_target: the specific product, entity, or metric (e.g. 'Claude Tag')
      * prediction_deadline_days: an integer number of days (e.g. 90 or 180)
      * prediction_measurement: highly specific observable condition that proves the bet.
+
+{forecast_mode_injection}
 
 ═══════════════════════════════════════════════════
 SELF-CHECK (run before returning each hypothesis)
@@ -749,7 +783,16 @@ Output ONLY a valid JSON array. Do NOT create duplicate hypotheses.
                             "themes": themes,
                             "confidence": float(action.get("confidence", 0.50)),
                             "status": "ACTIVE",
-                            "predicted_time_horizon": action.get("predicted_time_horizon", "90_days")
+                            "predicted_time_horizon": action.get("predicted_time_horizon", "90_days"),
+                            # ── Structured prediction fields (P0 fix) ────────────────────
+                            # These are read by PredictionTracker._is_expired() and
+                            # _classify_evidence(). Without them the tracker cannot expire
+                            # hypotheses and CONFIRMED is blocked for all rows.
+                            "prediction_event":        action.get("prediction_event", ""),
+                            "prediction_target":       action.get("prediction_target", ""),
+                            "prediction_deadline_days": int(action.get("prediction_deadline_days") or 90),
+                            "prediction_measurement":  action.get("prediction_measurement", ""),
+                            "company_name":            company_name,
                         }
                         db_hyp = create_hypothesis(hyp_record)
                         if db_hyp:
